@@ -21,15 +21,14 @@
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
 
-        .sala {
-            display: grid;
-            grid-template-columns: repeat(6, 1fr);
-            gap: 15px;
-            max-width: 500px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
+.sala {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr); /* ⚠️ AHORA SON 7 COLUMNAS */
+    gap: 10px; /* Reducimos un poco el hueco general */
+    max-width: 600px; /* Aumentamos un poco el ancho total */
+    margin: 0 auto;
+    padding: 20px;
+}
         .asiento {
             height: 45px;
             background-color: #2ecc71; /* VERDE */
@@ -226,31 +225,53 @@
         let asientoSeleccionado = ""; 
 
         // 1. DIBUJAR Y LIMPIAR
-        function dibujarAsientos(datos) {
-            // Aprovechamos cada recarga para limpiar lo viejo (Guardian Automático)
-            limpiarReservasVencidas(datos);
+// --- 🏗️ TU NUEVO MAPA (Aquí modificas la sala) ---
+// "A" = Asiento
+// "_" = Pasillo (Guion bajo)
+const mapa = [
+    "AAA_AAA", // Fila 1 (3 sillas, 1 hueco, 3 sillas)
+    "AAA_AAA", // Fila 2
+    "AAA_AAA", // Fila 3
+    "AAA_AAA", // Fila 4
+    "AAA_AAA"  // Fila 5
+];
 
-            contenedor.innerHTML = '';
-            for (let f = 1; f <= 5; f++) {
-                for (let c = 1; c <= 6; c++) {
-                    const id = `F${f}-A${c}`; 
-                    const div = document.createElement('div');
-                    div.classList.add('asiento');
-                    div.innerText = `${f}-${c}`;
+function dibujarAsientos(datos) {
+    limpiarReservasVencidas(datos); // Mantenemos tu limpieza automática
+    contenedor.innerHTML = '';
 
-                    if (datos[id]) {
-                        if (datos[id].estado === 'ocupado') {
-                            div.classList.add('ocupado');
-                        } else {
-                            div.classList.add('pendiente');
-                        }
-                    } else {
-                        div.onclick = () => abrirFormulario(id);
-                    }
-                    contenedor.appendChild(div);
+    // El sistema lee tu mapa fila por fila
+    mapa.forEach((filaTexto, indexFila) => {
+        let numeroFila = indexFila + 1;
+        let numeroAsiento = 0; // Reiniciamos contador por fila
+
+        for (let i = 0; i < filaTexto.length; i++) {
+            const caracter = filaTexto[i];
+            const div = document.createElement('div');
+
+            if (caracter === '_') {
+                // ES UN PASILLO (Espacio invisible)
+                div.style.visibility = "hidden"; // Ocultamos el div
+                contenedor.appendChild(div);
+            } else {
+                // ES UN ASIENTO
+                numeroAsiento++;
+                const id = `F${numeroFila}-A${numeroAsiento}`;
+                
+                div.classList.add('asiento');
+                div.innerText = numeroAsiento; // Mostramos solo el número
+
+                if (datos[id]) {
+                    if (datos[id].estado === 'ocupado') div.classList.add('ocupado');
+                    else div.classList.add('pendiente');
+                } else {
+                    div.onclick = () => abrirFormulario(id);
                 }
+                contenedor.appendChild(div);
             }
         }
+    });
+}        
 
         // 2. FUNCIÓN DE LIMPIEZA AUTOMÁTICA (EL GUARDIÁN)
         async function limpiarReservasVencidas(datos) {

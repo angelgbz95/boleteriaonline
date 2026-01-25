@@ -5,35 +5,80 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel de Control - DIRECTOR</title>
     <style>
-        body { background-color: #222; color: white; font-family: sans-serif; text-align: center; }
+        body { background-color: #1a1a1a; color: white; font-family: 'Segoe UI', sans-serif; text-align: center; padding: 20px; }
         
-        h1 { color: #f1c40f; }
-        .instrucciones { background: #333; padding: 15px; display: inline-block; border-radius: 8px; margin-bottom: 20px;}
+        h1 { color: #f1c40f; letter-spacing: 2px; text-transform: uppercase; }
+        
+        .instrucciones { 
+            background: #333; padding: 15px; display: inline-block; 
+            border-radius: 8px; margin-bottom: 20px; border: 1px solid #555;
+        }
 
+        /* --- GRILLA CON PASILLO (7 COLUMNAS) --- */
         .sala {
             display: grid;
-            grid-template-columns: repeat(6, 1fr);
+            grid-template-columns: repeat(7, 1fr); /* 3 izq + 1 pasillo + 3 der = 7 */
             gap: 10px;
-            max-width: 500px;
+            max-width: 600px; /* Un poco más ancho para el pasillo */
             margin: 0 auto;
             padding: 20px;
-            background: #111;
-            border-radius: 10px;
+            background: #000;
+            border-radius: 15px;
+            border: 1px solid #444;
         }
 
         .asiento {
-            height: 50px;
+            height: 45px;
             border-radius: 5px;
             display: flex; align-items: center; justify-content: center;
-            font-weight: bold; cursor: pointer; color: black;
-            border: 2px solid #555;
+            font-weight: bold; cursor: pointer; color: black; font-size: 14px;
+            transition: transform 0.1s;
         }
+        .asiento:active { transform: scale(0.95); }
 
-        .libre { background-color: #2ecc71; } /* VERDE */
-        .pendiente { background-color: #f1c40f; } /* AMARILLO */
+        /* ESTADOS */
+        .libre { background-color: #2ecc71; color: black; } /* VERDE */
+        .pendiente { background-color: #f1c40f; color: black; } /* AMARILLO */
         .ocupado { background-color: #e74c3c; color: white; } /* ROJO */
 
-        .info-panel { margin-top: 20px; font-size: 18px; height: 30px; color: #ccc;}
+        /* BOTÓN DE PÁNICO */
+        .btn-reset {
+            background-color: #c0392b; color: white; padding: 15px 30px;
+            border: none; border-radius: 8px; cursor: pointer; font-weight: bold;
+            margin-top: 30px; border: 2px solid #e74c3c;
+        }
+        .btn-reset:hover { background-color: #a93226; }
+
+        /* MODAL DE GESTIÓN */
+        .modal-fondo {
+            display: none; position: fixed; top: 0; left: 0; 
+            width: 100%; height: 100%; background: rgba(0,0,0,0.85); 
+            justify-content: center; align-items: center; z-index: 1000;
+        }
+        .modal-card {
+            background: #222; padding: 25px; border-radius: 10px; 
+            width: 90%; max-width: 400px; text-align: left;
+            border: 2px solid #f1c40f; box-shadow: 0 0 30px rgba(0,0,0,0.5);
+        }
+        .dato-fila { 
+            margin: 10px 0; padding-bottom: 10px; border-bottom: 1px solid #444; 
+            font-size: 15px;
+        }
+        .dato-label { color: #888; font-size: 12px; display: block; margin-bottom: 3px; }
+        .dato-valor { color: white; font-weight: bold; font-size: 16px; }
+
+        .acciones { display: flex; gap: 10px; margin-top: 20px; }
+        
+        button { flex: 1; padding: 12px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        
+        .btn-pagar { background: #27ae60; color: white; }
+        .btn-borrar { background: #e74c3c; color: white; }
+        .btn-cerrar { background: #555; color: white; }
+
+        /* TABLA LISTADO */
+        table { width: 100%; max-width: 800px; margin: 40px auto; border-collapse: collapse; background: #222; font-size: 14px; text-align: left;}
+        th, td { padding: 10px; border-bottom: 1px solid #444; }
+        th { color: #f1c40f; }
     </style>
 </head>
 <body>
@@ -41,22 +86,62 @@
     <h1>👮‍♂️ CENTRO DE COMANDO</h1>
     
     <div class="instrucciones">
-        🟢 <b>Verde:</b> Libre <br>
-        🟡 <b>Amarillo:</b> Reservado (Ver datos de contacto) <br>
-        🔴 <b>Rojo:</b> Confirmado (Pago recibido) <br><br>
-        <i>💡 Toca un asiento para ver la ficha del cliente.</i>
+        🟢 Libre &nbsp;|&nbsp; 🟡 Reservado &nbsp;|&nbsp; 🔴 Pagado
     </div>
-
-    <div id="info" class="info-panel">Esperando acción...</div>
 
     <div id="contenedor-asientos" class="sala"></div>
 
+    <button class="btn-reset" onclick="liberarTodasLasButacas()">☢️ LIBERAR TODA LA SALA</button>
+
+    <h3>📋 Listado de Asistentes</h3>
+    <table id="tabla-reservas">
+        <thead>
+            <tr>
+                <th>Butaca</th>
+                <th>Cliente</th>
+                <th>Estado</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <div id="modalGestion" class="modal-fondo">
+        <div class="modal-card">
+            <h2 style="color:#f1c40f; margin-top:0;">Gestionar: <span id="m-asiento"></span></h2>
+            
+            <div class="dato-fila">
+                <span class="dato-label">CLIENTE</span>
+                <span id="m-cliente" class="dato-valor">---</span>
+            </div>
+            <div class="dato-fila">
+                <span class="dato-label">DNI</span>
+                <span id="m-dni" class="dato-valor">---</span>
+            </div>
+            <div class="dato-fila">
+                <span class="dato-label">TELÉFONO</span>
+                <a id="m-tel-link" href="#" target="_blank" style="color:#2ecc71; text-decoration:none;">
+                    <span id="m-tel" class="dato-valor">---</span> (WhatsApp)
+                </a>
+            </div>
+            <div class="dato-fila">
+                <span class="dato-label">MÉTODO DE PAGO</span>
+                <span id="m-pago" class="dato-valor">---</span>
+            </div>
+
+            <div class="acciones">
+                <button id="btn-accion-pagar" class="btn-pagar" onclick="confirmarPago()">✅ Confirmar</button>
+                <button id="btn-accion-borrar" class="btn-borrar" onclick="eliminarReserva()">🗑️ Eliminar</button>
+                <button class="btn-cerrar" onclick="cerrarModal()">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot } 
+        import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, getDocs } 
         from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // ⚠️ PEGA TUS LLAVES AQUÍ OTRA VEZ ⚠️
+        // ⚠️ PEGA TUS CLAVES AQUÍ (Reemplaza este bloque con las tuyas) ⚠️
         const firebaseConfig = {
             apiKey: "AIzaSyDFg-4F6_bVHP7xYAOlUVwFiTTUoZ-ltVc",
             authDomain: "boleteria-piloto.firebaseapp.com",
@@ -69,81 +154,140 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const contenedor = document.getElementById('contenedor-asientos');
-        const info = document.getElementById('info');
+        const tablaBody = document.querySelector('#tabla-reservas tbody');
+        
+        const modal = document.getElementById('modalGestion');
+        let asientoActualId = null;
 
-        // DIBUJAR TABLERO
+        // --- 🏗️ EL MAPA DE LA SALA (Debe ser igual al Index) ---
+        const mapa = [
+            "AAA_AAA", // Fila 1 (3 izq - pasillo - 3 der)
+            "AAA_AAA", 
+            "AAA_AAA", 
+            "AAA_AAA", 
+            "AAA_AAA"  
+        ];
+
+        // 1. DIBUJAR GRILLA + TABLA
         function dibujarAdmin(datos) {
             contenedor.innerHTML = '';
-            for (let f = 1; f <= 5; f++) {
-                for (let c = 1; c <= 6; c++) {
-                    const id = `F${f}-A${c}`;
+            tablaBody.innerHTML = '';
+
+            // El sistema lee tu mapa fila por fila
+            mapa.forEach((filaTexto, indexFila) => {
+                let f = indexFila + 1;
+                let c = 0; // Reiniciamos contador por fila
+
+                for (let i = 0; i < filaTexto.length; i++) {
+                    const caracter = filaTexto[i];
                     const div = document.createElement('div');
-                    div.classList.add('asiento');
-                    div.innerText = `${f}-${c}`;
 
-                    // Lógica de colores
-                    if (datos[id]) {
-                        if (datos[id].estado === 'ocupado') {
-                            div.classList.add('ocupado'); // Rojo
-                        } else {
-                            div.classList.add('pendiente'); // Amarillo
-                        }
-                        div.title = datos[id].cliente; // Tooltip con nombre
+                    if (caracter === '_') {
+                        // ES UN PASILLO (Invisible)
+                        div.style.visibility = "hidden";
+                        contenedor.appendChild(div);
                     } else {
-                        div.classList.add('libre'); // Verde
+                        // ES UN ASIENTO
+                        c++; 
+                        const id = `F${f}-A${c}`; 
+                        
+                        div.classList.add('asiento');
+                        div.innerText = c; // Mostramos el número real
+
+                        if (datos[id]) {
+                            const d = datos[id];
+                            // Colores según estado
+                            if (d.estado === 'ocupado') div.classList.add('ocupado');
+                            else div.classList.add('pendiente');
+                            
+                            // Click para gestionar
+                            div.onclick = () => abrirModal(id, d);
+
+                            // Agregar fila a la tabla
+                            const tr = document.createElement('tr');
+                            tr.innerHTML = `
+                                <td style="font-weight:bold; color:#f1c40f">${id}</td>
+                                <td>${d.cliente}</td>
+                                <td>${d.estado === 'ocupado' ? '🔴 Pagado' : '🟡 Pendiente'}</td>
+                            `;
+                            tablaBody.appendChild(tr);
+
+                        } else {
+                            div.classList.add('libre');
+                            div.onclick = () => alert(`El asiento ${id} está LIBRE.`);
+                        }
+                        contenedor.appendChild(div);
                     }
-
-                    // CLICK DE ADMINISTRADOR
-                    div.onclick = () => gestionarAsiento(id, datos[id]);
-                    contenedor.appendChild(div);
                 }
-            }
+            });
         }
 
-        async function gestionarAsiento(id, datos) {
-            // SI ESTÁ LIBRE
-            if (!datos) {
-                info.innerText = `Asiento ${id} está LIBRE.`;
-                return;
+        // 2. GESTIÓN DEL MODAL
+        window.abrirModal = (id, datos) => {
+            asientoActualId = id;
+            
+            // Llenar datos visuales
+            document.getElementById('m-asiento').innerText = id;
+            document.getElementById('m-cliente').innerText = datos.cliente;
+            document.getElementById('m-dni').innerText = datos.dni || '-';
+            
+            const tel = datos.telefono || datos.tel || ''; 
+            document.getElementById('m-tel').innerText = tel;
+            // Enlace directo a WhatsApp
+            document.getElementById('m-tel-link').href = `https://wa.me/${tel.replace(/\D/g,'')}`;
+            
+            const tipoPago = datos.tipo_pago === 'mp' ? '💳 Mercado Pago' : '💵 Efectivo';
+            document.getElementById('m-pago').innerText = tipoPago;
+
+            // Ocultar botón pagar si ya pagó
+            const btnPagar = document.getElementById('btn-accion-pagar');
+            if(datos.estado === 'ocupado') {
+                btnPagar.style.display = 'none'; 
+            } else {
+                btnPagar.style.display = 'block'; 
             }
 
-            // SI ESTÁ OCUPADO/PENDIENTE -> MOSTRAR FICHA COMPLETA
-            // Usamos '||' para evitar que salga undefined si el dato no existe
-            let ficha = `👤 Cliente: ${datos.cliente}\n` +
-                        `📄 DNI: ${datos.dni || 'No especificado'}\n` +
-                        `📞 Tel: ${datos.telefono || 'No especificado'}\n` +
-                        `📧 Email: ${datos.email || 'No especificado'}\n` +
-                        `----------------------------\n` +
-                        `Estado Actual: ${datos.estado.toUpperCase()}\n` +
-                        `----------------------------\n` +
-                        `ESCRIBE UNA ORDEN:\n` +
-                        `ok -> Confirmar Pago (Rojo)\n` +
-                        `borrar -> Eliminar Reserva (Verde)`;
+            modal.style.display = 'flex';
+        };
 
-            let accion = prompt(ficha);
+        window.cerrarModal = () => {
+            modal.style.display = 'none';
+            asientoActualId = null;
+        };
 
-            if (accion === "borrar") {
-                let seguro = confirm("¿Seguro que quieres eliminar esta reserva y perder los datos?");
-                if(seguro) {
-                    await deleteDoc(doc(db, "asientos_gala", id));
-                    info.innerText = `🗑️ Asiento ${id} liberado.`;
+        // 3. ACCIONES FIREBASE
+        window.confirmarPago = async () => {
+            if(!asientoActualId) return;
+            await setDoc(doc(db, "asientos_gala", asientoActualId), { estado: 'ocupado' }, { merge: true });
+            cerrarModal();
+        };
+
+        window.eliminarReserva = async () => {
+            if(!asientoActualId) return;
+            if(confirm("¿Seguro que quieres liberar este asiento?")) {
+                await deleteDoc(doc(db, "asientos_gala", asientoActualId));
+                cerrarModal();
+            }
+        };
+
+        window.liberarTodasLasButacas = async () => {
+            const respuesta = confirm("⚠️ ¡PELIGRO! ¿Estás seguro de borrar TODAS las ventas?");
+            if (respuesta) {
+                const pass = prompt("Escribe BORRAR para confirmar:");
+                if(pass === "BORRAR"){
+                    const q = await getDocs(collection(db, "asientos_gala"));
+                    q.forEach((d) => deleteDoc(doc(db, "asientos_gala", d.id)));
+                    alert("Sala reiniciada.");
                 }
-            } else if (accion === "ok") {
-                await setDoc(doc(db, "asientos_gala", id), {
-                    ...datos, // Mantiene los datos viejos (tel, dni, etc)
-                    estado: "ocupado" // Solo cambia el estado
-                });
-                info.innerText = `✅ Asiento ${id} confirmado pagado.`;
             }
-        }
+        };
 
-        // ESCUCHAR CAMBIOS EN VIVO
-        onSnapshot(collection(db, "asientos_gala"), (snapshot) => {
-            const datos = {};
-            snapshot.forEach((doc) => datos[doc.id] = doc.data());
-            dibujarAdmin(datos);
+        // ESCUCHAR CAMBIOS
+        onSnapshot(collection(db, "asientos_gala"), (snap) => {
+            const d = {};
+            snap.forEach(doc => d[doc.id] = doc.data());
+            dibujarAdmin(d);
         });
-
     </script>
 </body>
 </html>
