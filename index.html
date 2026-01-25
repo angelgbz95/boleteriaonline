@@ -3,145 +3,172 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel de Control - DIRECTOR</title>
+    <title>Gala de Ballet - Venta Oficial</title>
+    
     <style>
-        body { background-color: #1a1a1a; color: white; font-family: 'Segoe UI', sans-serif; text-align: center; padding: 20px; }
+        /* --- ESTILO GENERAL --- */
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121212; color: white; text-align: center; margin: 0; padding-bottom: 50px; }
         
-        h1 { color: #f1c40f; letter-spacing: 2px; text-transform: uppercase; }
-        
-        .instrucciones { 
-            background: #333; padding: 15px; display: inline-block; 
-            border-radius: 8px; margin-bottom: 20px; border: 1px solid #555;
+        h1 { color: #d4af37; text-transform: uppercase; letter-spacing: 3px; margin-top: 40px; text-shadow: 0 0 10px rgba(212, 175, 55, 0.5); }
+        p { color: #888; }
+
+        /* --- ESCENARIO Y SALA --- */
+        .escenario {
+            background: linear-gradient(to bottom, #444, #222);
+            width: 70%; height: 50px; margin: 30px auto;
+            border-radius: 0 0 50px 50px;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: bold; letter-spacing: 5px; color: #555;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
 
-        /* --- GRILLA CON PASILLO (7 COLUMNAS) --- */
+        /* --- SALA CON PASILLO (7 COLUMNAS) --- */
         .sala {
             display: grid;
-            grid-template-columns: repeat(7, 1fr); /* 3 izq + 1 pasillo + 3 der = 7 */
+            grid-template-columns: repeat(7, 1fr);
             gap: 10px;
-            max-width: 600px; /* Un poco más ancho para el pasillo */
+            max-width: 500px;
             margin: 0 auto;
             padding: 20px;
-            background: #000;
-            border-radius: 15px;
-            border: 1px solid #444;
         }
 
         .asiento {
             height: 45px;
-            border-radius: 5px;
+            background-color: #2ecc71; /* VERDE */
+            border-radius: 8px; cursor: pointer;
             display: flex; align-items: center; justify-content: center;
-            font-weight: bold; cursor: pointer; color: black; font-size: 14px;
-            transition: transform 0.1s;
+            font-weight: bold; font-size: 14px;
+            transition: all 0.2s; position: relative;
+            box-shadow: 0 4px 0 #27ae60; color: black;
         }
-        .asiento:active { transform: scale(0.95); }
+        .asiento:active { transform: translateY(4px); box-shadow: none; }
+        .asiento.pendiente { background-color: #f1c40f; box-shadow: 0 4px 0 #d4ac0d; cursor: not-allowed; color: black; }
+        .asiento.ocupado { background-color: #e74c3c; box-shadow: 0 4px 0 #c0392b; cursor: not-allowed; color: white; }
 
-        /* ESTADOS */
-        .libre { background-color: #2ecc71; color: black; } /* VERDE */
-        .pendiente { background-color: #f1c40f; color: black; } /* AMARILLO */
-        .ocupado { background-color: #e74c3c; color: white; } /* ROJO */
+        .leyenda { margin-top: 20px; font-size: 14px; }
 
-        /* BOTÓN DE PÁNICO */
-        .btn-reset {
-            background-color: #c0392b; color: white; padding: 15px 30px;
-            border: none; border-radius: 8px; cursor: pointer; font-weight: bold;
-            margin-top: 30px; border: 2px solid #e74c3c;
-        }
-        .btn-reset:hover { background-color: #a93226; }
-
-        /* MODAL DE GESTIÓN */
+        /* --- MODALES --- */
         .modal-fondo {
-            display: none; position: fixed; top: 0; left: 0; 
-            width: 100%; height: 100%; background: rgba(0,0,0,0.85); 
-            justify-content: center; align-items: center; z-index: 1000;
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.9);
+            justify-content: center; align-items: center; z-index: 100;
         }
-        .modal-card {
-            background: #222; padding: 25px; border-radius: 10px; 
+
+        .modal-contenido {
+            background-color: #222; padding: 25px; border-radius: 10px;
             width: 90%; max-width: 400px; text-align: left;
-            border: 2px solid #f1c40f; box-shadow: 0 0 30px rgba(0,0,0,0.5);
+            border: 2px solid #d4af37; box-shadow: 0 0 20px rgba(212, 175, 55, 0.3);
+            position: relative;
         }
-        .dato-fila { 
-            margin: 10px 0; padding-bottom: 10px; border-bottom: 1px solid #444; 
-            font-size: 15px;
+
+        .modal-contenido h2 { margin-top: 0; color: #d4af37; text-align: center; }
+        
+        input {
+            width: 100%; padding: 10px; margin: 8px 0;
+            border-radius: 5px; border: 1px solid #555;
+            background: #333; color: white; box-sizing: border-box; 
         }
-        .dato-label { color: #888; font-size: 12px; display: block; margin-bottom: 3px; }
-        .dato-valor { color: white; font-weight: bold; font-size: 16px; }
 
-        .acciones { display: flex; gap: 10px; margin-top: 20px; }
-        
-        button { flex: 1; padding: 12px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
-        
-        .btn-pagar { background: #27ae60; color: white; }
-        .btn-borrar { background: #e74c3c; color: white; }
-        .btn-cerrar { background: #555; color: white; }
+        .opciones-pago { background: #333; padding: 10px; border-radius: 5px; margin: 10px 0; text-align: left; }
+        .opciones-pago label { display: block; margin: 5px 0; cursor: pointer; }
 
-        /* TABLA LISTADO */
-        table { width: 100%; max-width: 800px; margin: 40px auto; border-collapse: collapse; background: #222; font-size: 14px; text-align: left;}
-        th, td { padding: 10px; border-bottom: 1px solid #444; }
-        th { color: #f1c40f; }
+        .btn-confirmar {
+            width: 100%; padding: 12px; margin-top: 15px;
+            background-color: #2ecc71; color: black; font-weight: bold;
+            border: none; border-radius: 5px; cursor: pointer; font-size: 16px;
+        }
+        .btn-cancelar {
+            width: 100%; padding: 10px; margin-top: 5px;
+            background-color: transparent; color: #aaa;
+            border: none; cursor: pointer; text-align: center; display: block;
+        }
+
+        /* --- MODAL PAGO LIMPIO --- */
+        .info-pago {
+            background: #333; padding: 15px; border-radius: 5px; margin: 15px 0;
+            font-size: 14px; line-height: 1.5; color: #ddd;
+            text-align: center;
+        }
+        .destacado { color: #f1c40f; font-weight: bold; font-size: 1.3em; }
+
+        .btn-whatsapp {
+            color: #25D366; text-decoration: none; font-weight: bold; font-size: 1.2em;
+            display: block; margin-top: 10px; border: 1px solid #25D366; padding: 8px;
+            border-radius: 5px; text-align: center; transition: all 0.3s;
+        }
+        .btn-whatsapp:hover { background-color: #25D366; color: black; }
+        
+        .btn-mercado {
+            background-color: #009ee3; color: white; width: 100%; padding: 15px; border: none; border-radius: 5px;
+            font-weight: bold; font-size: 18px; cursor: pointer; margin-top: 10px; text-decoration: none; display: block; text-align: center; box-sizing: border-box;
+        }
     </style>
 </head>
 <body>
 
-    <h1>👮‍♂️ CENTRO DE COMANDO</h1>
+    <h1>🩰 Gran Gala de Ballet</h1>
+    <p>Reserva tu butaca y paga online o en efectivo</p>
+
+    <div class="escenario">ESCENARIO</div>
     
-    <div class="instrucciones">
-        🟢 Libre &nbsp;|&nbsp; 🟡 Reservado &nbsp;|&nbsp; 🔴 Pagado
+    <div id="contenedor-asientos" class="sala">Cargando mapa...</div>
+
+    <div class="leyenda">
+        <span style="color:#2ecc71">■ Disponible</span> &nbsp; 
+        <span style="color:#f1c40f">■ Reservado</span> &nbsp;
+        <span style="color:#e74c3c">■ Vendido</span>
     </div>
 
-    <div id="contenedor-asientos" class="sala"></div>
+    <div id="modalFormulario" class="modal-fondo">
+        <div class="modal-contenido">
+            <h2>Butaca <span id="lbl-asiento"></span></h2>
+            <label>Nombre Completo:</label>
+            <input type="text" id="inp-nombre" placeholder="Ej: Juan Pérez">
+            <label>DNI:</label>
+            <input type="number" id="inp-dni" placeholder="Sin puntos">
+            <label>Teléfono:</label>
+            <input type="tel" id="inp-tel" placeholder="Ej: 376 456 7890">
+            <label>Email:</label>
+            <input type="email" id="inp-email" placeholder="nombre@mail.com">
 
-    <button class="btn-reset" onclick="liberarTodasLasButacas()">☢️ LIBERAR TODA LA SALA</button>
+            <div class="opciones-pago">
+                <p style="margin:0 0 5px 0; color:#d4af37;">Forma de Pago:</p>
+                <label><input type="radio" name="pago" value="mp" checked> 💳 Mercado Pago (15 min)</label>
+                <label><input type="radio" name="pago" value="efectivo"> 💵 Efectivo (24 hs)</label>
+            </div>
 
-    <h3>📋 Listado de Asistentes</h3>
-    <table id="tabla-reservas">
-        <thead>
-            <tr>
-                <th>Butaca</th>
-                <th>Cliente</th>
-                <th>Estado</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
+            <button class="btn-confirmar" onclick="guardarPreReserva()">CONTINUAR</button>
+            <button class="btn-cancelar" onclick="cerrarModales()">Cancelar</button>
+        </div>
+    </div>
 
-    <div id="modalGestion" class="modal-fondo">
-        <div class="modal-card">
-            <h2 style="color:#f1c40f; margin-top:0;">Gestionar: <span id="m-asiento"></span></h2>
+    <div id="modalPago" class="modal-fondo">
+        <div class="modal-contenido" style="text-align: center;">
+            <h2>⏳ Reserva Iniciada</h2>
             
-            <div class="dato-fila">
-                <span class="dato-label">CLIENTE</span>
-                <span id="m-cliente" class="dato-valor">---</span>
-            </div>
-            <div class="dato-fila">
-                <span class="dato-label">DNI</span>
-                <span id="m-dni" class="dato-valor">---</span>
-            </div>
-            <div class="dato-fila">
-                <span class="dato-label">TELÉFONO</span>
-                <a id="m-tel-link" href="#" target="_blank" style="color:#2ecc71; text-decoration:none;">
-                    <span id="m-tel" class="dato-valor">---</span> (WhatsApp)
+            <div class="info-pago">
+                <p style="font-size:16px">Has reservado la butaca: <b id="t-butaca" style="color:#d4af37; font-size:18px">--</b></p>
+                <hr style="border-color:#444">
+                <p>⚠️ Tiempo límite para pagar: <br><span id="cronometro" class="destacado">--:--</span></p>
+                <p id="mensaje-instrucciones" style="color:#aaa; font-size:13px"></p>
+                
+                <a id="btn-link-pago" href="#" class="btn-mercado" target="_blank">PAGAR AHORA</a>
+                
+                <a href="https://wa.me/5493764374689" target="_blank" class="btn-whatsapp">
+                    📲 Avisar pago por WhatsApp
                 </a>
             </div>
-            <div class="dato-fila">
-                <span class="dato-label">MÉTODO DE PAGO</span>
-                <span id="m-pago" class="dato-valor">---</span>
-            </div>
-
-            <div class="acciones">
-                <button id="btn-accion-pagar" class="btn-pagar" onclick="confirmarPago()">✅ Confirmar</button>
-                <button id="btn-accion-borrar" class="btn-borrar" onclick="eliminarReserva()">🗑️ Eliminar</button>
-                <button class="btn-cerrar" onclick="cerrarModal()">Cancelar</button>
-            </div>
+            
+            <button class="btn-cancelar" onclick="cerrarModales()">Cerrar</button>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, getDocs } 
+        import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot } 
         from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // ⚠️ PEGA TUS CLAVES AQUÍ (Reemplaza este bloque con las tuyas) ⚠️
+        // TUS CLAVES (Boleteria Piloto)
         const firebaseConfig = {
             apiKey: "AIzaSyDFg-4F6_bVHP7xYAOlUVwFiTTUoZ-ltVc",
             authDomain: "boleteria-piloto.firebaseapp.com",
@@ -150,71 +177,58 @@
             messagingSenderId: "888414257363",
             appId: "1:888414257363:web:7653fbdf87284bd6645426"
         };
+        
+        var LINK_DE_PAGO = "https://mpago.la/1dGP6Qs"; 
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const contenedor = document.getElementById('contenedor-asientos');
-        const tablaBody = document.querySelector('#tabla-reservas tbody');
         
-        const modal = document.getElementById('modalGestion');
-        let asientoActualId = null;
+        const modalForm = document.getElementById('modalFormulario');
+        const modalPago = document.getElementById('modalPago');
+        const btnLinkPago = document.getElementById('btn-link-pago');
+        const lblAsiento = document.getElementById('lbl-asiento');
+        const msjInstrucciones = document.getElementById('mensaje-instrucciones');
+        
+        let asientoSeleccionado = ""; 
 
-        // --- 🏗️ EL MAPA DE LA SALA (Debe ser igual al Index) ---
+        // MAPA CON PASILLO
         const mapa = [
-            "AAA_AAA", // Fila 1 (3 izq - pasillo - 3 der)
-            "AAA_AAA", 
-            "AAA_AAA", 
-            "AAA_AAA", 
-            "AAA_AAA"  
+            "AAA_AAA",
+            "AAA_AAA",
+            "AAA_AAA",
+            "AAA_AAA",
+            "AAA_AAA"
         ];
 
-        // 1. DIBUJAR GRILLA + TABLA
-        function dibujarAdmin(datos) {
+        // 1. DIBUJAR
+        function dibujarAsientos(datos) {
+            limpiarReservasVencidas(datos);
             contenedor.innerHTML = '';
-            tablaBody.innerHTML = '';
+            contenedor.style.gridTemplateColumns = `repeat(${mapa[0].length}, 1fr)`;
 
-            // El sistema lee tu mapa fila por fila
             mapa.forEach((filaTexto, indexFila) => {
                 let f = indexFila + 1;
-                let c = 0; // Reiniciamos contador por fila
+                let c = 0;
 
                 for (let i = 0; i < filaTexto.length; i++) {
                     const caracter = filaTexto[i];
                     const div = document.createElement('div');
 
                     if (caracter === '_') {
-                        // ES UN PASILLO (Invisible)
                         div.style.visibility = "hidden";
                         contenedor.appendChild(div);
                     } else {
-                        // ES UN ASIENTO
-                        c++; 
+                        c++;
                         const id = `F${f}-A${c}`; 
-                        
                         div.classList.add('asiento');
-                        div.innerText = c; // Mostramos el número real
+                        div.innerText = c; 
 
                         if (datos[id]) {
-                            const d = datos[id];
-                            // Colores según estado
-                            if (d.estado === 'ocupado') div.classList.add('ocupado');
+                            if (datos[id].estado === 'ocupado') div.classList.add('ocupado');
                             else div.classList.add('pendiente');
-                            
-                            // Click para gestionar
-                            div.onclick = () => abrirModal(id, d);
-
-                            // Agregar fila a la tabla
-                            const tr = document.createElement('tr');
-                            tr.innerHTML = `
-                                <td style="font-weight:bold; color:#f1c40f">${id}</td>
-                                <td>${d.cliente}</td>
-                                <td>${d.estado === 'ocupado' ? '🔴 Pagado' : '🟡 Pendiente'}</td>
-                            `;
-                            tablaBody.appendChild(tr);
-
                         } else {
-                            div.classList.add('libre');
-                            div.onclick = () => alert(`El asiento ${id} está LIBRE.`);
+                            div.onclick = () => abrirFormulario(id);
                         }
                         contenedor.appendChild(div);
                     }
@@ -222,71 +236,95 @@
             });
         }
 
-        // 2. GESTIÓN DEL MODAL
-        window.abrirModal = (id, datos) => {
-            asientoActualId = id;
-            
-            // Llenar datos visuales
-            document.getElementById('m-asiento').innerText = id;
-            document.getElementById('m-cliente').innerText = datos.cliente;
-            document.getElementById('m-dni').innerText = datos.dni || '-';
-            
-            const tel = datos.telefono || datos.tel || ''; 
-            document.getElementById('m-tel').innerText = tel;
-            // Enlace directo a WhatsApp
-            document.getElementById('m-tel-link').href = `https://wa.me/${tel.replace(/\D/g,'')}`;
-            
-            const tipoPago = datos.tipo_pago === 'mp' ? '💳 Mercado Pago' : '💵 Efectivo';
-            document.getElementById('m-pago').innerText = tipoPago;
-
-            // Ocultar botón pagar si ya pagó
-            const btnPagar = document.getElementById('btn-accion-pagar');
-            if(datos.estado === 'ocupado') {
-                btnPagar.style.display = 'none'; 
-            } else {
-                btnPagar.style.display = 'block'; 
-            }
-
-            modal.style.display = 'flex';
-        };
-
-        window.cerrarModal = () => {
-            modal.style.display = 'none';
-            asientoActualId = null;
-        };
-
-        // 3. ACCIONES FIREBASE
-        window.confirmarPago = async () => {
-            if(!asientoActualId) return;
-            await setDoc(doc(db, "asientos_gala", asientoActualId), { estado: 'ocupado' }, { merge: true });
-            cerrarModal();
-        };
-
-        window.eliminarReserva = async () => {
-            if(!asientoActualId) return;
-            if(confirm("¿Seguro que quieres liberar este asiento?")) {
-                await deleteDoc(doc(db, "asientos_gala", asientoActualId));
-                cerrarModal();
-            }
-        };
-
-        window.liberarTodasLasButacas = async () => {
-            const respuesta = confirm("⚠️ ¡PELIGRO! ¿Estás seguro de borrar TODAS las ventas?");
-            if (respuesta) {
-                const pass = prompt("Escribe BORRAR para confirmar:");
-                if(pass === "BORRAR"){
-                    const q = await getDocs(collection(db, "asientos_gala"));
-                    q.forEach((d) => deleteDoc(doc(db, "asientos_gala", d.id)));
-                    alert("Sala reiniciada.");
+        // 2. LIMPIEZA
+        async function limpiarReservasVencidas(datos) {
+            const ahora = new Date().getTime(); 
+            for (const id in datos) {
+                const reserva = datos[id];
+                if (reserva.estado === 'pendiente' && reserva.limite) {
+                    if (ahora > reserva.limite) {
+                        try { await deleteDoc(doc(db, "asientos_gala", id)); } catch (e) {}
+                    }
                 }
             }
-        };
+        }
 
-        // ESCUCHAR CAMBIOS
+        window.abrirFormulario = function(id) {
+            asientoSeleccionado = id;
+            lblAsiento.innerText = id;
+            modalForm.style.display = "flex";
+        }
+
+        window.cerrarModales = function() {
+            modalForm.style.display = "none";
+            modalPago.style.display = "none";
+            clearInterval(intervalo);
+        }
+
+        // 3. GUARDAR (Sin ticket)
+        window.guardarPreReserva = async function() {
+            const nombre = document.getElementById('inp-nombre').value;
+            const dni = document.getElementById('inp-dni').value;
+            const tel = document.getElementById('inp-tel').value;
+            const email = document.getElementById('inp-email').value;
+            const modoPago = document.querySelector('input[name="pago"]:checked').value;
+
+            if (nombre === "" || dni === "" || tel === "") return alert("⚠️ Completa los datos.");
+
+            let minutos = (modoPago === 'mp') ? 15 : 1440;
+            const tiempoLimite = new Date().getTime() + (minutos * 60 * 1000);
+
+            try {
+                await setDoc(doc(db, "asientos_gala", asientoSeleccionado), {
+                    estado: "pendiente", cliente: nombre, dni: dni, telefono: tel, email: email,
+                    tipo_pago: modoPago, limite: tiempoLimite, fecha: new Date().toISOString()
+                });
+
+                document.getElementById('t-butaca').innerText = asientoSeleccionado;
+                modalForm.style.display = "none";
+                
+                if (modoPago === 'mp') {
+                    btnLinkPago.style.display = "block"; 
+                    btnLinkPago.href = LINK_DE_PAGO;
+                    msjInstrucciones.innerText = "Para confirmar, realiza el pago ahora.";
+                } else {
+                    btnLinkPago.style.display = "none"; 
+                    msjInstrucciones.innerText = "Acércate a pagar en efectivo dentro de las 24hs.";
+                }
+
+                iniciarCuentaRegresiva(minutos); 
+                modalPago.style.display = "flex";
+
+            } catch (error) { alert("Error: " + error.message); }
+        }
+
+        // 4. RELOJ
+        let intervalo;
+        function iniciarCuentaRegresiva(minutos) {
+            clearInterval(intervalo);
+            let tiempo = minutos * 60; 
+            const visualizador = document.getElementById('cronometro');
+            
+            intervalo = setInterval(async () => {
+                let m = Math.floor(tiempo / 60);
+                let s = tiempo % 60;
+                visualizador.textContent = `${m}:${s < 10 ? '0'+s : s}`;
+                
+                if (tiempo <= 0) {
+                    clearInterval(intervalo);
+                    try { await deleteDoc(doc(db, "asientos_gala", asientoSeleccionado)); } catch (e) {}
+                    alert("⚠️ Tiempo agotado. Se liberó el asiento.");
+                    window.location.reload();
+                } else {
+                    tiempo--; 
+                }
+            }, 1000);
+        }
+
         onSnapshot(collection(db, "asientos_gala"), (snap) => {
-            const d = {};
-            snap.forEach(doc => d[doc.id] = doc.data());
-            dibujarAdmin(d);
+            const datos = {};
+            snap.forEach((doc) => datos[doc.id] = doc.data());
+            dibujarAsientos(datos);
         });
     </script>
 </body>
