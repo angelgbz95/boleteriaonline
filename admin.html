@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Control - DIRECTOR</title>
+    <style>
+        body { background-color: #222; color: white; font-family: sans-serif; text-align: center; }
+        
+        h1 { color: #f1c40f; }
+        .instrucciones { background: #333; padding: 15px; display: inline-block; border-radius: 8px; margin-bottom: 20px;}
+
+        .sala {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 10px;
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #111;
+            border-radius: 10px;
+        }
+
+        .asiento {
+            height: 50px;
+            border-radius: 5px;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: bold; cursor: pointer; color: black;
+            border: 2px solid #555;
+        }
+
+        .libre { background-color: #2ecc71; } /* VERDE */
+        .pendiente { background-color: #f1c40f; } /* AMARILLO */
+        .ocupado { background-color: #e74c3c; color: white; } /* ROJO */
+
+        .info-panel { margin-top: 20px; font-size: 18px; height: 30px; color: #ccc;}
+    </style>
+</head>
+<body>
+
+    <h1>👮‍♂️ CENTRO DE COMANDO</h1>
+    
+    <div class="instrucciones">
+        🟢 <b>Verde:</b> Libre <br>
+        🟡 <b>Amarillo:</b> Reservado (Ver datos de contacto) <br>
+        🔴 <b>Rojo:</b> Confirmado (Pago recibido) <br><br>
+        <i>💡 Toca un asiento para ver la ficha del cliente.</i>
+    </div>
+
+    <div id="info" class="info-panel">Esperando acción...</div>
+
+    <div id="contenedor-asientos" class="sala"></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot } 
+        from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // ⚠️ PEGA TUS LLAVES AQUÍ OTRA VEZ ⚠️
+        const firebaseConfig = {
+            apiKey: "AIzaSyDFg-4F6_bVHP7xYAOlUVwFiTTUoZ-ltVc",
+            authDomain: "boleteria-piloto.firebaseapp.com",
+            projectId: "boleteria-piloto",
+            storageBucket: "boleteria-piloto.firebasestorage.app",
+            messagingSenderId: "888414257363",
+            appId: "1:888414257363:web:7653fbdf87284bd6645426"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const contenedor = document.getElementById('contenedor-asientos');
+        const info = document.getElementById('info');
+
+        // DIBUJAR TABLERO
+        function dibujarAdmin(datos) {
+            contenedor.innerHTML = '';
+            for (let f = 1; f <= 5; f++) {
+                for (let c = 1; c <= 6; c++) {
+                    const id = `F${f}-A${c}`;
+                    const div = document.createElement('div');
+                    div.classList.add('asiento');
+                    div.innerText = `${f}-${c}`;
+
+                    // Lógica de colores
+                    if (datos[id]) {
+                        if (datos[id].estado === 'ocupado') {
+                            div.classList.add('ocupado'); // Rojo
+                        } else {
+                            div.classList.add('pendiente'); // Amarillo
+                        }
+                        div.title = datos[id].cliente; // Tooltip con nombre
+                    } else {
+                        div.classList.add('libre'); // Verde
+                    }
+
+                    // CLICK DE ADMINISTRADOR
+                    div.onclick = () => gestionarAsiento(id, datos[id]);
+                    contenedor.appendChild(div);
+                }
+            }
+        }
+
+        async function gestionarAsiento(id, datos) {
+            // SI ESTÁ LIBRE
+            if (!datos) {
+                info.innerText = `Asiento ${id} está LIBRE.`;
+                return;
+            }
+
+            // SI ESTÁ OCUPADO/PENDIENTE -> MOSTRAR FICHA COMPLETA
+            // Usamos '||' para evitar que salga undefined si el dato no existe
+            let ficha = `👤 Cliente: ${datos.cliente}\n` +
+                        `📄 DNI: ${datos.dni || 'No especificado'}\n` +
+                        `📞 Tel: ${datos.telefono || 'No especificado'}\n` +
+                        `📧 Email: ${datos.email || 'No especificado'}\n` +
+                        `----------------------------\n` +
+                        `Estado Actual: ${datos.estado.toUpperCase()}\n` +
+                        `----------------------------\n` +
+                        `ESCRIBE UNA ORDEN:\n` +
+                        `ok -> Confirmar Pago (Rojo)\n` +
+                        `borrar -> Eliminar Reserva (Verde)`;
+
+            let accion = prompt(ficha);
+
+            if (accion === "borrar") {
+                let seguro = confirm("¿Seguro que quieres eliminar esta reserva y perder los datos?");
+                if(seguro) {
+                    await deleteDoc(doc(db, "asientos_gala", id));
+                    info.innerText = `🗑️ Asiento ${id} liberado.`;
+                }
+            } else if (accion === "ok") {
+                await setDoc(doc(db, "asientos_gala", id), {
+                    ...datos, // Mantiene los datos viejos (tel, dni, etc)
+                    estado: "ocupado" // Solo cambia el estado
+                });
+                info.innerText = `✅ Asiento ${id} confirmado pagado.`;
+            }
+        }
+
+        // ESCUCHAR CAMBIOS EN VIVO
+        onSnapshot(collection(db, "asientos_gala"), (snapshot) => {
+            const datos = {};
+            snapshot.forEach((doc) => datos[doc.id] = doc.data());
+            dibujarAdmin(datos);
+        });
+
+    </script>
+</body>
+</html>
