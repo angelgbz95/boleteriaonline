@@ -3,205 +3,80 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gala de Ballet - Venta Oficial</title>
+    <title>Boletería Online - Sala Simple</title>
     <style>
-        /* ESTILO GENERAL */
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121212; color: white; text-align: center; margin: 0; padding-bottom: 50px; }
+        body { font-family: sans-serif; background-color: #0f0f0f; color: white; text-align: center; margin: 0; padding-bottom: 50px; }
+        h1 { color: #d4af37; margin-top: 30px; }
         
-        h1 { color: #d4af37; text-transform: uppercase; letter-spacing: 3px; margin-top: 40px; text-shadow: 0 0 10px rgba(212, 175, 55, 0.5); }
-        p { color: #888; }
-
-        /* ESCENARIO Y SALA */
         .escenario {
-            background: linear-gradient(to bottom, #444, #222);
-            width: 70%; height: 50px; margin: 30px auto;
-            border-radius: 0 0 50px 50px;
-            display: flex; align-items: center; justify-content: center;
-            font-weight: bold; letter-spacing: 5px; color: #555;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            background: #333; width: 60%; height: 40px; margin: 20px auto;
+            border-radius: 0 0 40px 40px; display: flex; align-items: center; 
+            justify-content: center; color: #777; font-weight: bold;
         }
 
-        .sala {
-            display: grid;
-            grid-template-columns: repeat(6, 1fr);
-            gap: 15px;
-            max-width: 500px;
-            margin: 0 auto;
-            padding: 20px;
+        /* La grilla ahora se adapta automáticamente al dibujo */
+        .sala { 
+            display: grid; gap: 8px; margin: 20px auto; 
+            justify-content: center; width: fit-content;
+            padding: 20px; background: #1a1a1a; border-radius: 10px;
         }
 
         .asiento {
-            height: 45px;
-            background-color: #2ecc71; /* VERDE */
-            border-radius: 8px;
-            cursor: pointer;
-            display: flex; align-items: center; justify-content: center;
-            font-weight: bold; font-size: 14px;
-            transition: all 0.2s;
-            position: relative;
-            box-shadow: 0 4px 0 #27ae60;
-            color: black;
+            width: 35px; height: 35px; background-color: #27ae60;
+            border-radius: 5px; cursor: pointer; display: flex;
+            align-items: center; justify-content: center; font-size: 11px;
         }
+        .asiento.ocupado { background-color: #c0392b; cursor: not-allowed; }
+        .asiento.pendiente { background-color: #f39c12; color: black; }
+        .pasillo { width: 35px; height: 35px; background: transparent; }
 
-        .asiento:active { transform: translateY(4px); box-shadow: none; }
-
-        /* ESTADOS */
-        .asiento.pendiente { background-color: #f1c40f; box-shadow: 0 4px 0 #d4ac0d; cursor: not-allowed; color: black; }
-        .asiento.ocupado { background-color: #e74c3c; box-shadow: 0 4px 0 #c0392b; cursor: not-allowed; color: white; }
-
-        .leyenda { margin-top: 20px; font-size: 14px; }
-
-        /* --- MODALES --- */
-        .modal-fondo {
-            display: none; /* Oculto por defecto */
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(0,0,0,0.9);
-            justify-content: center; align-items: center;
-            z-index: 100;
-        }
-
-        .modal-contenido {
-            background-color: #222;
-            padding: 25px;
-            border-radius: 10px;
-            width: 90%; max-width: 400px;
-            text-align: left;
-            border: 2px solid #d4af37;
-            box-shadow: 0 0 20px rgba(212, 175, 55, 0.3);
-            position: relative;
-        }
-
-        .modal-contenido h2 { margin-top: 0; color: #d4af37; text-align: center; }
-        
-        input {
-            width: 100%; padding: 10px; margin: 8px 0;
-            border-radius: 5px; border: 1px solid #555;
-            background: #333; color: white;
-            box-sizing: border-box; 
-        }
-
-        /* OPCIONES DE PAGO */
-        .opciones-pago {
-            background: #333; padding: 10px; border-radius: 5px; margin: 10px 0;
-            text-align: left;
-        }
-        .opciones-pago label { display: block; margin: 5px 0; cursor: pointer; }
-
-        .btn-confirmar {
-            width: 100%; padding: 12px; margin-top: 15px;
-            background-color: #2ecc71; color: black; font-weight: bold;
-            border: none; border-radius: 5px; cursor: pointer; font-size: 16px;
-        }
-        
-        .btn-cancelar {
-            width: 100%; padding: 10px; margin-top: 5px;
-            background-color: transparent; color: #aaa;
-            border: none; cursor: pointer; text-align: center; display: block;
-        }
-
-        /* Estilos para el Modal de Pago */
-        .info-pago {
-            background: #333; padding: 15px; border-radius: 5px; margin: 15px 0;
-            font-size: 14px; line-height: 1.5; color: #ddd;
-        }
-        .destacado { color: #f1c40f; font-weight: bold; font-size: 1.1em; }
-
-        .btn-whatsapp {
-            color: #25D366; text-decoration: none; font-weight: bold; font-size: 1.2em;
-            display: block; margin-top: 10px; border: 1px solid #25D366; padding: 8px;
-            border-radius: 5px; text-align: center; transition: all 0.3s;
-        }
-        .btn-whatsapp:hover { background-color: #25D366; color: black; }
-        
-        .btn-mercado {
-            background-color: #009ee3; color: white; 
-            width: 100%; padding: 15px; border: none; border-radius: 5px;
-            font-weight: bold; font-size: 18px; cursor: pointer;
-            margin-top: 10px; text-decoration: none; display: block; text-align: center; box-sizing: border-box;
-        }
+        /* Modales */
+        .modal-fondo { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); justify-content: center; align-items: center; z-index: 100; }
+        .modal-contenido { background: #222; padding: 20px; border-radius: 8px; width: 300px; border: 1px solid #d4af37; text-align: left; }
+        input { width: 100%; padding: 10px; margin: 10px 0; box-sizing: border-box; background: #333; color: white; border: 1px solid #444; }
+        button { width: 100%; padding: 12px; cursor: pointer; font-weight: bold; border-radius: 4px; border: none; }
+        .btn-confirmar { background: #d4af37; color: black; margin-top: 10px; }
+        .btn-mercado { background: #009ee3; color: white; text-decoration: none; display: block; text-align: center; padding: 12px; margin-top: 10px; border-radius: 4px; }
+        .btn-wa { color: #25D366; text-decoration: none; display: block; text-align: center; padding: 8px; margin-top: 10px; border: 1px solid #25D366; }
     </style>
 </head>
 <body>
 
-    <h1>🩰 Gran Gala de Ballet</h1>
-    <p>Reserva tu butaca y paga online o en efectivo</p>
-
+    <h1>🩰 Galas de Ballet</h1>
     <div class="escenario">ESCENARIO</div>
     
-    <div id="contenedor-asientos" class="sala">
-        Cargando mapa de sala...
-    </div>
+    <div id="contenedor-asientos" class="sala"></div>
 
-    <div class="leyenda">
-        <span style="color:#2ecc71">■ Disponible</span> &nbsp; 
-        <span style="color:#f1c40f">■ Reservado</span> &nbsp;
-        <span style="color:#e74c3c">■ Vendido</span>
-    </div>
-
-    <div id="modalFormulario" class="modal-fondo">
+    <div id="modalForm" class="modal-fondo">
         <div class="modal-contenido">
-            <h2>Butaca <span id="lbl-asiento"></span></h2>
-            
-            <label>Nombre Completo:</label>
-            <input type="text" id="inp-nombre" placeholder="Ej: Juan Pérez">
-            <label>DNI:</label>
-            <input type="number" id="inp-dni" placeholder="Sin puntos">
-            <label>Teléfono:</label>
-            <input type="tel" id="inp-tel" placeholder="Ej: 376 456 7890">
-            <label>Email:</label>
-            <input type="email" id="inp-email" placeholder="nombre@mail.com">
-
-            <div class="opciones-pago">
-                <p style="margin:0 0 5px 0; color:#d4af37;">Forma de Pago:</p>
-                <label>
-                    <input type="radio" name="pago" value="mp" checked> 
-                    💳 Mercado Pago (15 min para pagar)
-                </label>
-                <label>
-                    <input type="radio" name="pago" value="efectivo"> 
-                    💵 Efectivo (24 hs para abonar)
-                </label>
+            <h3 id="titulo-asiento"></h3>
+            <input type="text" id="nombre" placeholder="Nombre completo">
+            <input type="number" id="dni" placeholder="DNI">
+            <input type="tel" id="tel" placeholder="Teléfono">
+            <div style="font-size: 13px; margin: 10px 0;">
+                <label><input type="radio" name="pago" value="mp" checked> Mercado Pago</label><br>
+                <label><input type="radio" name="pago" value="efectivo"> Efectivo</label>
             </div>
-
-            <button class="btn-confirmar" onclick="guardarPreReserva()">CONTINUAR</button>
-            <button class="btn-cancelar" onclick="cerrarModales()">Cancelar</button>
+            <button class="btn-confirmar" onclick="confirmarReserva()">RESERVAR</button>
+            <button style="background:transparent; color:#888" onclick="cerrar()">Cancelar</button>
         </div>
     </div>
 
-    <div id="modalPago" class="modal-fondo">
-        <div class="modal-contenido" style="text-align: center;">
-            <h2>⏳ Reserva Iniciada</h2>
-            
-            <div class="info-pago">
-                <p>Tu butaca ha sido reservada.</p>
-                <p>⚠️ Tiempo límite: <span id="cronometro" class="destacado">--:--</span></p>
-                
-                <p id="mensaje-instrucciones"></p>
-
-                <hr style="border-color:#444">
-                
-                <p>Contacto / Comprobantes:</p>
-                <a href="https://wa.me/5493764374689" target="_blank" class="btn-whatsapp">
-                    📲 Enviar mensaje al Admin
-                </a>
-            </div>
-
-            <a id="btn-link-pago" href="#" class="btn-mercado" target="_blank">
-                PAGAR AHORA
-            </a>
-            
-            <button class="btn-cancelar" onclick="cerrarModales()">Cerrar</button>
+    <div id="modalInstrucciones" class="modal-fondo">
+        <div class="modal-contenido" style="text-align:center">
+            <h3>⏳ ¡Reserva Iniciada!</h3>
+            <p>Tiempo restante: <b id="timer" style="color:#f39c12">--:--</b></p>
+            <a href="https://wa.me/5493764374689" target="_blank" class="btn-wa">📲 Enviar Comprobante</a>
+            <a id="btnMP" href="#" target="_blank" class="btn-mercado">PAGAR AHORA</a>
+            <button style="background:transparent; color:#888; margin-top:10px" onclick="cerrar()">Cerrar</button>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot } 
-        from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // --- TUS CLAVES ---
         const firebaseConfig = {
-            // ⚠️ PEGA AQUÍ TU BLOQUE DE FIREBASE ⚠️
             apiKey: "AIzaSyDFg-4F6_bVHP7xYAOlUVwFiTTUoZ-ltVc",
             authDomain: "boleteria-piloto.firebaseapp.com",
             projectId: "boleteria-piloto",
@@ -209,189 +84,97 @@
             messagingSenderId: "888414257363",
             appId: "1:888414257363:web:7653fbdf87284bd6645426"
         };
-        
-        // --- 💰 CONFIGURACIÓN DE PAGO ---
-        var LINK_DE_PAGO = "https://mpago.la/1dGP6Qs"; 
+        const LINK_DE_PAGO = " https://mpago.la/1dGP6Qs ";
+
+        // --- 🏗️ EL DIBUJO DE TU SALA ---
+        // A = Asiento, _ = Pasillo
+        const mapa = [
+            "AAA_AAAAAA_AAA", // Fila 1
+            "AAA_AAAAAA_AAA"  // Fila 2
+        ];
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const contenedor = document.getElementById('contenedor-asientos');
-        
-        // Modales
-        const modalForm = document.getElementById('modalFormulario');
-        const modalPago = document.getElementById('modalPago');
-        const btnLinkPago = document.getElementById('btn-link-pago');
-        const lblAsiento = document.getElementById('lbl-asiento');
-        const msjInstrucciones = document.getElementById('mensaje-instrucciones');
-        
-        let asientoSeleccionado = ""; 
+        let selId = "", intervalo;
 
-        // 1. DIBUJAR Y LIMPIAR
-        function dibujarAsientos(datos) {
-            // Aprovechamos cada recarga para limpiar lo viejo (Guardian Automático)
-            limpiarReservasVencidas(datos);
-
+        function dibujar(datos) {
             contenedor.innerHTML = '';
-            for (let f = 1; f <= 5; f++) {
-                for (let c = 1; c <= 6; c++) {
-                    const id = `F${f}-A${c}`; 
-                    const div = document.createElement('div');
-                    div.classList.add('asiento');
-                    div.innerText = `${f}-${c}`;
+            contenedor.style.gridTemplateColumns = `repeat(${mapa[0].length}, 1fr)`;
 
-                    if (datos[id]) {
-                        if (datos[id].estado === 'ocupado') {
-                            div.classList.add('ocupado');
-                        } else {
-                            div.classList.add('pendiente');
-                        }
+            mapa.forEach((fila, fIdx) => {
+                let nAsiento = 1;
+                for (let char of fila) {
+                    const div = document.createElement('div');
+                    if (char === '_') {
+                        div.className = 'pasillo';
                     } else {
-                        div.onclick = () => abrirFormulario(id);
+                        const id = `F${fIdx+1}-A${nAsiento}`;
+                        div.className = 'asiento';
+                        div.innerText = nAsiento;
+                        if (datos[id]) {
+                            div.classList.add(datos[id].estado === 'ocupado' ? 'ocupado' : 'pendiente');
+                        } else {
+                            div.onclick = () => {
+                                selId = id;
+                                document.getElementById('titulo-asiento').innerText = "Butaca " + id;
+                                document.getElementById('modalForm').style.display = 'flex';
+                            };
+                        }
+                        nAsiento++;
                     }
                     contenedor.appendChild(div);
                 }
-            }
+            });
         }
 
-        // 2. FUNCIÓN DE LIMPIEZA AUTOMÁTICA (EL GUARDIÁN)
-        async function limpiarReservasVencidas(datos) {
-            const ahora = new Date().getTime(); // Hora actual en milisegundos
-
-            for (const id in datos) {
-                const reserva = datos[id];
-                // Solo revisamos las PENDIENTES que tengan fecha límite
-                if (reserva.estado === 'pendiente' && reserva.limite) {
-                    if (ahora > reserva.limite) {
-                        console.log(`🧹 Borrando reserva vencida: ${id}`);
-                        try {
-                            await deleteDoc(doc(db, "asientos_gala", id));
-                        } catch (e) {
-                            console.error("Error limpieza auto:", e);
-                        }
-                    }
-                }
-            }
-        }
-
-        // 3. ABRIR FORMULARIO
-        window.abrirFormulario = function(id) {
-            asientoSeleccionado = id;
-            lblAsiento.innerText = id;
-            document.getElementById('inp-nombre').value = "";
-            document.getElementById('inp-dni').value = "";
-            document.getElementById('inp-tel').value = "";
-            document.getElementById('inp-email').value = "";
-            modalForm.style.display = "flex";
-        }
-
-        window.cerrarModales = function() {
-            modalForm.style.display = "none";
-            modalPago.style.display = "none";
+        window.cerrar = () => {
+            document.querySelectorAll('.modal-fondo').forEach(m => m.style.display = 'none');
             clearInterval(intervalo);
-        }
+        };
 
-        // 4. GUARDAR LÓGICA (MP vs EFECTIVO)
-        window.guardarPreReserva = async function() {
-            const nombre = document.getElementById('inp-nombre').value;
-            const dni = document.getElementById('inp-dni').value;
-            const tel = document.getElementById('inp-tel').value;
-            const email = document.getElementById('inp-email').value;
+        window.confirmarReserva = async () => {
+            const nom = document.getElementById('nombre').value;
+            const dni = document.getElementById('dni').value;
+            const tel = document.getElementById('tel').value;
+            const pago = document.querySelector('input[name="pago"]:checked').value;
+
+            if (!nom || !dni || !tel) return alert("Completa los datos");
+
+            const mins = (pago === 'mp') ? 15 : 1440;
+            const limite = new Date().getTime() + (mins * 60 * 1000);
+
+            await setDoc(doc(db, "asientos_gala", selId), {
+                estado: "pendiente", cliente: nom, dni, tel, limite, pago
+            });
+
+            document.getElementById('modalForm').style.display = 'none';
+            document.getElementById('btnMP').style.display = (pago === 'mp' ? 'block' : 'none');
+            document.getElementById('btnMP').href = LINK_DE_PAGO;
             
-            // Ver qué radio button eligió
-            const modoPago = document.querySelector('input[name="pago"]:checked').value;
+            iniciarReloj(mins);
+            document.getElementById('modalInstrucciones').style.display = 'flex';
+        };
 
-            if (nombre === "" || dni === "" || tel === "") {
-                alert("⚠️ Completa los datos obligatorios.");
-                return;
-            }
-
-            // Configuración según pago
-            let minutos = 0;
-            let textoInstrucciones = "";
-            
-            if (modoPago === 'mp') {
-                minutos = 15;
-                textoInstrucciones = "Para confirmar, realiza el pago con tarjeta ahora.";
-                btnLinkPago.style.display = "block"; // Mostrar botón MP
-            } else {
-                minutos = 1440; // 24 horas (60 * 24)
-                textoInstrucciones = "Tenés 24hs para acercarte a pagar en efectivo o contactar a la administración.";
-                btnLinkPago.style.display = "none"; // Ocultar botón MP
-            }
-
-            // Calculamos la fecha límite real (Ahora + Minutos)
-            const tiempoLimite = new Date().getTime() + (minutos * 60 * 1000);
-
-            try {
-                await setDoc(doc(db, "asientos_gala", asientoSeleccionado), {
-                    estado: "pendiente",
-                    cliente: nombre,
-                    dni: dni,
-                    telefono: tel,
-                    email: email,
-                    tipo_pago: modoPago, // Guardamos qué eligió
-                    limite: tiempoLimite, // Guardamos cuándo vence para el Guardián
-                    fecha: new Date().toISOString()
-                });
-
-                modalForm.style.display = "none";
-                
-                // Preparamos el modal final
-                btnLinkPago.href = LINK_DE_PAGO;
-                msjInstrucciones.innerText = textoInstrucciones;
-                
-                iniciarCuentaRegresiva(minutos); 
-                modalPago.style.display = "flex";
-
-            } catch (error) {
-                alert("Error: " + error.message);
-            }
-        }
-
-        // 5. RELOJ VISUAL
-        let intervalo;
-        function iniciarCuentaRegresiva(minutos) {
-            clearInterval(intervalo);
-            let tiempo = minutos * 60; 
-            const visualizador = document.getElementById('cronometro');
-            
+        function iniciarReloj(m) {
+            let t = m * 60;
+            const vis = document.getElementById('timer');
             intervalo = setInterval(async () => {
-                // Cálculo de horas, minutos, segundos para que se vea lindo (ej: 23:59:00)
-                let h = Math.floor(tiempo / 3600);
-                let m = Math.floor((tiempo % 3600) / 60);
-                let s = tiempo % 60;
-
-                // Formato con ceros
-                let texto = "";
-                if (h > 0) texto += `${h}h `;
-                texto += `${m < 10 ? '0'+m : m}m ${s < 10 ? '0'+s : s}s`;
-
-                visualizador.textContent = texto;
-                
-                if (tiempo <= 0) {
+                let mins = Math.floor(t / 60), segs = t % 60;
+                vis.innerText = `${mins}:${segs < 10 ? '0'+segs : segs}`;
+                if (t-- <= 0) {
                     clearInterval(intervalo);
-                    visualizador.textContent = "TIEMPO AGOTADO";
-                    visualizador.style.color = "red";
-                    
-                    try { await deleteDoc(doc(db, "asientos_gala", asientoSeleccionado)); } 
-                    catch (e) {}
-                    
-                    alert("⚠️ El tiempo expiró. El asiento se liberó.");
-                    cerrarModales(); 
+                    await deleteDoc(doc(db, "asientos_gala", selId));
                     window.location.reload();
-                } else {
-                    tiempo--; 
                 }
             }, 1000);
         }
 
-        // ESCUCHAR DB
-        onSnapshot(collection(db, "asientos_gala"), (snapshot) => {
-            const datos = {};
-            snapshot.forEach((doc) => datos[doc.id] = doc.data());
-            dibujarAsientos(datos);
+        onSnapshot(collection(db, "asientos_gala"), (snap) => {
+            const d = {};
+            snap.forEach(doc => d[doc.id] = doc.data());
+            dibujar(d);
         });
-
     </script>
 </body>
 </html>
