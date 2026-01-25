@@ -3,73 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel Admin - Gala de Ballet</title>
+    <title>Panel de Control - DIRECTOR</title>
     <style>
-        body { font-family: sans-serif; background-color: #1a1a1a; color: white; text-align: center; padding: 20px; }
-        h1 { color: #d4af37; }
+        body { background-color: #222; color: white; font-family: sans-serif; text-align: center; }
         
-        .controles { margin-bottom: 30px; background: #222; padding: 20px; border-radius: 10px; border: 1px solid #444; }
-        
-        .sala { 
-            display: grid; gap: 8px; margin: 20px auto; 
-            justify-content: center; width: fit-content;
-            padding: 20px; background: #000; border-radius: 10px;
+        h1 { color: #f1c40f; }
+        .instrucciones { background: #333; padding: 15px; display: inline-block; border-radius: 8px; margin-bottom: 20px;}
+
+        .sala {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 10px;
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #111;
+            border-radius: 10px;
         }
 
         .asiento {
-            width: 40px; height: 40px; background-color: #27ae60;
-            border-radius: 5px; cursor: pointer; display: flex;
-            align-items: center; justify-content: center; font-size: 11px;
-            color: white; font-weight: bold;
+            height: 50px;
+            border-radius: 5px;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: bold; cursor: pointer; color: black;
+            border: 2px solid #555;
         }
-        .asiento.ocupado { background-color: #c0392b; }
-        .asiento.pendiente { background-color: #f39c12; color: black; }
-        .pasillo { width: 40px; height: 40px; background: transparent; }
 
-        .btn-reset {
-            background-color: #e74c3c; color: white; padding: 15px 25px;
-            border: none; border-radius: 5px; cursor: pointer; font-weight: bold;
-            margin-top: 10px;
-        }
-        .btn-reset:hover { background-color: #c0392b; }
+        .libre { background-color: #2ecc71; } /* VERDE */
+        .pendiente { background-color: #f1c40f; } /* AMARILLO */
+        .ocupado { background-color: #e74c3c; color: white; } /* ROJO */
 
-        /* Estilos de la tabla de datos */
-        table { width: 100%; max-width: 900px; margin: 30px auto; border-collapse: collapse; background: #222; }
-        th, td { padding: 12px; border: 1px solid #444; text-align: left; }
-        th { background: #d4af37; color: black; }
-        .btn-vender { background: #2ecc71; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px; }
-        .btn-borrar { background: #e74c3c; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px; color: white; }
+        .info-panel { margin-top: 20px; font-size: 18px; height: 30px; color: #ccc;}
     </style>
 </head>
 <body>
 
-    <h1>⚙️ Administración de Butacas</h1>
-
-    <div class="controles">
-        <p>Desde aquí puedes confirmar ventas manuales o vaciar la sala.</p>
-        <button class="btn-reset" onclick="liberarTodasLasButacas()">🔥 LIBERAR TODAS LAS BUTACAS</button>
+    <h1>👮‍♂️ CENTRO DE COMANDO</h1>
+    
+    <div class="instrucciones">
+        🟢 <b>Verde:</b> Libre <br>
+        🟡 <b>Amarillo:</b> Reservado (Ver datos de contacto) <br>
+        🔴 <b>Rojo:</b> Confirmado (Pago recibido) <br><br>
+        <i>💡 Toca un asiento para ver la ficha del cliente.</i>
     </div>
+
+    <div id="info" class="info-panel">Esperando acción...</div>
 
     <div id="contenedor-asientos" class="sala"></div>
 
-    <h3>Lista de Reservas Activas</h3>
-    <table id="tabla-reservas">
-        <thead>
-            <tr>
-                <th>Butaca</th>
-                <th>Cliente</th>
-                <th>Pago</th>
-                <th>Acciones</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
-
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot } 
+        from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // --- ⚠️ PEGA AQUÍ TUS MISMAS CLAVES DE FIREBASE ⚠️ ---
+        // ⚠️ PEGA TUS LLAVES AQUÍ OTRA VEZ ⚠️
         const firebaseConfig = {
             apiKey: "AIzaSyDFg-4F6_bVHP7xYAOlUVwFiTTUoZ-ltVc",
             authDomain: "boleteria-piloto.firebaseapp.com",
@@ -79,91 +66,84 @@
             appId: "1:888414257363:web:7653fbdf87284bd6645426"
         };
 
-        // --- 🏗️ EL MISMO MAPA QUE EN INDEX.HTML ---
-        const mapa = [
-            "AAA_AAAAAA_AAA",
-            "AAA_AAAAAA_AAA"
-        ];
-
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const contenedor = document.getElementById('contenedor-asientos');
-        const tablaBody = document.querySelector('#tabla-reservas tbody');
+        const info = document.getElementById('info');
 
+        // DIBUJAR TABLERO
         function dibujarAdmin(datos) {
             contenedor.innerHTML = '';
-            tablaBody.innerHTML = '';
-            contenedor.style.gridTemplateColumns = `repeat(${mapa[0].length}, 1fr)`;
-
-            mapa.forEach((fila, fIdx) => {
-                let nAsiento = 1;
-                for (let char of fila) {
+            for (let f = 1; f <= 5; f++) {
+                for (let c = 1; c <= 6; c++) {
+                    const id = `F${f}-A${c}`;
                     const div = document.createElement('div');
-                    if (char === '_') {
-                        div.className = 'pasillo';
-                    } else {
-                        const id = `F${fIdx+1}-A${nAsiento}`;
-                        div.className = 'asiento';
-                        div.innerText = nAsiento;
+                    div.classList.add('asiento');
+                    div.innerText = `${f}-${c}`;
 
-                        if (datos[id]) {
-                            const d = datos[id];
-                            div.classList.add(d.estado === 'ocupado' ? 'ocupado' : 'pendiente');
-                            
-                            // Agregar a la tabla
-                            const tr = document.createElement('tr');
-                            tr.innerHTML = `
-                                <td>${id}</td>
-                                <td>${d.cliente || 'S/D'} <br> <small>${d.tel || ''}</small></td>
-                                <td>${d.pago === 'mp' ? '💳 MP' : '💵 Efec.'}</td>
-                                <td>
-                                    ${d.estado === 'pendiente' ? `<button class="btn-vender" onclick="confirmarVenta('${id}')">Confirmar Pago</button>` : ''}
-                                    <button class="btn-borrar" onclick="borrarReserva('${id}')">Borrar</button>
-                                </td>
-                            `;
-                            tablaBody.appendChild(tr);
+                    // Lógica de colores
+                    if (datos[id]) {
+                        if (datos[id].estado === 'ocupado') {
+                            div.classList.add('ocupado'); // Rojo
+                        } else {
+                            div.classList.add('pendiente'); // Amarillo
                         }
-                        nAsiento++;
+                        div.title = datos[id].cliente; // Tooltip con nombre
+                    } else {
+                        div.classList.add('libre'); // Verde
                     }
+
+                    // CLICK DE ADMINISTRADOR
+                    div.onclick = () => gestionarAsiento(id, datos[id]);
                     contenedor.appendChild(div);
                 }
-            });
+            }
         }
 
-        // --- ⚡ FUNCIONES DE ACCIÓN ---
-
-        window.confirmarVenta = async (id) => {
-            if(confirm(`¿Confirmar pago de la butaca ${id}? Pasará a ROJO.`)) {
-                const ref = doc(db, "asientos_gala", id);
-                await setDoc(ref, { estado: 'ocupado' }, { merge: true });
+        async function gestionarAsiento(id, datos) {
+            // SI ESTÁ LIBRE
+            if (!datos) {
+                info.innerText = `Asiento ${id} está LIBRE.`;
+                return;
             }
-        };
 
-        window.borrarReserva = async (id) => {
-            if(confirm(`¿Deseas eliminar la reserva de ${id}? Pasará a VERDE.`)) {
-                await deleteDoc(doc(db, "asientos_gala", id));
-            }
-        };
+            // SI ESTÁ OCUPADO/PENDIENTE -> MOSTRAR FICHA COMPLETA
+            // Usamos '||' para evitar que salga undefined si el dato no existe
+            let ficha = `👤 Cliente: ${datos.cliente}\n` +
+                        `📄 DNI: ${datos.dni || 'No especificado'}\n` +
+                        `📞 Tel: ${datos.telefono || 'No especificado'}\n` +
+                        `📧 Email: ${datos.email || 'No especificado'}\n` +
+                        `----------------------------\n` +
+                        `Estado Actual: ${datos.estado.toUpperCase()}\n` +
+                        `----------------------------\n` +
+                        `ESCRIBE UNA ORDEN:\n` +
+                        `ok -> Confirmar Pago (Rojo)\n` +
+                        `borrar -> Eliminar Reserva (Verde)`;
 
-        window.liberarTodasLasButacas = async () => {
-            const respuesta = confirm("⚠️ ¡ATENCIÓN! Esto borrará TODAS las reservas y ventas. ¿Estás seguro?");
-            if (respuesta) {
-                const querySnapshot = await getDocs(collection(db, "asientos_gala"));
-                const promesas = [];
-                querySnapshot.forEach((documento) => {
-                    promesas.push(deleteDoc(doc(db, "asientos_gala", documento.id)));
+            let accion = prompt(ficha);
+
+            if (accion === "borrar") {
+                let seguro = confirm("¿Seguro que quieres eliminar esta reserva y perder los datos?");
+                if(seguro) {
+                    await deleteDoc(doc(db, "asientos_gala", id));
+                    info.innerText = `🗑️ Asiento ${id} liberado.`;
+                }
+            } else if (accion === "ok") {
+                await setDoc(doc(db, "asientos_gala", id), {
+                    ...datos, // Mantiene los datos viejos (tel, dni, etc)
+                    estado: "ocupado" // Solo cambia el estado
                 });
-                await Promise.all(promesas);
-                alert("✅ Sala vaciada correctamente.");
+                info.innerText = `✅ Asiento ${id} confirmado pagado.`;
             }
-        };
+        }
 
-        // Escuchar DB
-        onSnapshot(collection(db, "asientos_gala"), (snap) => {
-            const d = {};
-            snap.forEach(doc => d[doc.id] = d.data());
-            dibujarAdmin(d);
+        // ESCUCHAR CAMBIOS EN VIVO
+        onSnapshot(collection(db, "asientos_gala"), (snapshot) => {
+            const datos = {};
+            snapshot.forEach((doc) => datos[doc.id] = doc.data());
+            dibujarAdmin(datos);
         });
+
     </script>
 </body>
 </html>
