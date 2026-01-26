@@ -67,11 +67,44 @@
             width: 100%; padding: 10px; margin: 8px 0;
             border-radius: 5px; border: 1px solid #555;
             background: #333; color: white; box-sizing: border-box; 
+            font-size: 16px; 
         }
 
-        .opciones-pago { background: #333; padding: 10px; border-radius: 5px; margin: 10px 0; text-align: left; }
-        .opciones-pago label { display: block; margin: 5px 0; cursor: pointer; }
+        #inp-nombre { text-transform: uppercase; }
 
+/* --- CORRECCIÓN DE ALINEACIÓN --- */
+.opciones-pago { 
+            background: #333; 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin: 15px 0; 
+            display: flex;
+            flex-direction: column; /* Apila las opciones verticalmente */
+            gap: 10px; /* Espacio entre las opciones */
+        }
+        
+        .opciones-pago label { 
+            display: flex !important;   /* Fuerza que el círculo y texto estén en línea */
+            align-items: center;        /* Centra verticalmente */
+            justify-content: flex-start;/* Alinea todo a la IZQUIERDA */
+            gap: 15px;                  /* Espacio claro entre círculo y texto */
+            margin: 0; 
+            cursor: pointer; 
+            font-size: 15px;
+            width: 100%;                /* Ocupa todo el ancho disponible */
+            text-align: left;           /* Asegura que el texto no se vaya al centro/derecha */
+            border: 1px solid #444;     /* Borde sutil para guiar el ojo */
+            padding: 10px;              /* Espacio interno para que respire */
+            border-radius: 5px;
+            background: #2a2a2a;        /* Fondo ligeramente distinto para destacar */
+        }
+
+        .opciones-pago input[type="radio"] {
+            margin: 0;                
+            transform: scale(1.3);    /* Círculo más grande */
+            accent-color: #d4af37;    /* Color dorado */
+            min-width: 20px;          /* Evita que el círculo se aplaste */
+        }
         .btn-confirmar {
             width: 100%; padding: 12px; margin-top: 15px;
             background-color: #2ecc71; color: black; font-weight: bold;
@@ -103,11 +136,8 @@
             font-weight: bold; font-size: 18px; cursor: pointer; margin-top: 10px; text-decoration: none; display: block; text-align: center; box-sizing: border-box;
         }
 
-        /* --- ESTILO ESPECIAL PARA EL MODAL DE CERRADO --- */
-        .modal-cerrado {
-            border-color: #e74c3c !important; /* Borde Rojo */
-            text-align: center;
-        }
+        /* --- MODAL CERRADO --- */
+        .modal-cerrado { border-color: #e74c3c !important; text-align: center; }
         .icono-cerrado { font-size: 50px; margin: 0; display: block; }
     </style>
 </head>
@@ -143,12 +173,16 @@
     <div id="modalFormulario" class="modal-fondo">
         <div class="modal-contenido">
             <h2>Butaca <span id="lbl-asiento"></span></h2>
+            
             <label>Nombre Completo:</label>
-            <input type="text" id="inp-nombre" placeholder="Ej: Juan Pérez">
+            <input type="text" id="inp-nombre" placeholder="Ej: JUAN PÉREZ">
+            
             <label>DNI:</label>
-            <input type="number" id="inp-dni" placeholder="Sin puntos">
-            <label>Teléfono:</label>
-            <input type="tel" id="inp-tel" placeholder="Ej: 376 456 7890">
+            <input type="tel" id="inp-dni" placeholder="Exactamente 8 números" maxlength="8" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+            
+            <label>Teléfono (WhatsApp):</label>
+            <input type="tel" id="inp-tel" placeholder="Ej: 3764123456" maxlength="15" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+            
             <label>Email:</label>
             <input type="email" id="inp-email" placeholder="nombre@mail.com">
 
@@ -213,7 +247,6 @@
         
         let asientoSeleccionado = ""; 
 
-        // MAPA CON PASILLO
         const mapa = [
             "AAA_AAA",
             "AAA_AAA",
@@ -271,20 +304,24 @@
         }
 
         window.abrirFormulario = function(id) {
-            // --- 🕒 PORTERO DIGITAL (Horario 9 a 19hs) ---
-            const ahora = new Date();
+            // --- 🕒 PORTERO DIGITAL (09 a 19hs) ---
+            /* const ahora = new Date();
             const hora = ahora.getHours(); 
-
-            // Si es antes de las 9 (0-8) O después de las 19 (19-23)
             if (hora < 9 || hora >= 19) {
-                // MOSTRAR EL NUEVO MODAL DE ADVERTENCIA
                 document.getElementById('modalCerrado').style.display = 'flex';
                 return; 
             }
-            // ---------------------------------------------
+            */
+            // --------------------------------------
 
             asientoSeleccionado = id;
             lblAsiento.innerText = id;
+            
+            document.getElementById('inp-nombre').value = "";
+            document.getElementById('inp-dni').value = "";
+            document.getElementById('inp-tel').value = "";
+            document.getElementById('inp-email').value = "";
+            
             modalForm.style.display = "flex";
         }
 
@@ -294,15 +331,20 @@
             clearInterval(intervalo);
         }
 
-        // 3. GUARDAR
+        // 3. GUARDAR (CON VALIDACIÓN DE DNI 8 DÍGITOS)
         window.guardarPreReserva = async function() {
-            const nombre = document.getElementById('inp-nombre').value;
+            const nombre = document.getElementById('inp-nombre').value.toUpperCase();
             const dni = document.getElementById('inp-dni').value;
             const tel = document.getElementById('inp-tel').value;
             const email = document.getElementById('inp-email').value;
             const modoPago = document.querySelector('input[name="pago"]:checked').value;
 
-            if (nombre === "" || dni === "" || tel === "") return alert("⚠️ Completa los datos.");
+            if (nombre === "" || dni === "" || tel === "") return alert("⚠️ Completa los datos obligatorios.");
+            
+            // ⚠️ AQUÍ ESTÁ EL CAMBIO: Validación estricta de 8 números
+            if (dni.length !== 8) return alert("⚠️ El DNI debe tener exactamente 8 números.");
+            
+            if (tel.length < 8) return alert("⚠️ El teléfono parece incorrecto.");
 
             let minutos = (modoPago === 'mp') ? 15 : 1440;
             const tiempoLimite = new Date().getTime() + (minutos * 60 * 1000);
