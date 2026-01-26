@@ -215,7 +215,6 @@
         <div class="modal-contenido" style="text-align: center; border-color: #f1c40f;">
             <h2 style="color: #f1c40f;">⚠️ Atención</h2>
             <p id="txt-alerta" style="font-size: 16px; color: #ccc; margin-bottom: 20px;"></p>
-            
             <button id="btn-alerta" class="btn-confirmar" onclick="cerrarAlerta()" style="background-color: #f1c40f; color:black; box-shadow: none;">ENTENDIDO</button>
         </div>
     </div>
@@ -258,7 +257,7 @@
         const modalConfirmacion = document.getElementById('modalConfirmacion');
         const modalAlerta = document.getElementById('modalAlerta'); 
         const txtAlerta = document.getElementById('txt-alerta'); 
-        const btnAlerta = document.getElementById('btn-alerta'); // Nuevo ID
+        const btnAlerta = document.getElementById('btn-alerta');
 
         const btnLinkPago = document.getElementById('btn-link-pago');
         const lblAsientosSel = document.getElementById('lbl-asientos-seleccionados');
@@ -272,6 +271,7 @@
         window.pagandoGlobal = false;
         let reservaEliminadaPorSalida = false; 
 
+        // --- MAPA ---
         const mapa = [
             "AAA_AAA",
             "AAA_AAA",
@@ -311,6 +311,7 @@
                                     div.classList.add('pendiente');
                                 }
                             }
+                            // Limpieza automática si el mapa dice que está ocupado pero yo lo tenía
                             if(window.seleccionados.includes(id) && !window.reservadosDB.includes(id)) {
                                 toggleSeleccion(id);
                             }
@@ -352,7 +353,6 @@
         window.mostrarAlerta = function(mensaje, tipo = 'normal') {
             txtAlerta.innerText = mensaje;
             
-            // Si es tipo 'reload', cambiamos el botón para refrescar
             if (tipo === 'reload') {
                 btnAlerta.innerText = "RECARGAR PÁGINA";
                 btnAlerta.onclick = () => window.location.reload();
@@ -365,16 +365,19 @@
         }
         window.cerrarAlerta = function() { modalAlerta.style.display = "none"; }
 
-        // --- 🔒 BLOQUEO ATÓMICO 🔒 ---
+        // --- 🔒 BLOQUEO ATÓMICO ANTI-GLITCH 🔒 ---
         window.preBloquearButacas = async function() {
             if (window.seleccionados.length === 0) return;
+            
+            // ❄️ CONGELAMOS la selección para evitar que el onSnapshot nos robe los datos
+            const asientosParaBloquear = [...window.seleccionados]; 
             
             loadingOverlay.style.display = 'flex'; 
 
             try {
                 await runTransaction(db, async (transaction) => {
                     const lecturas = [];
-                    for (let id of window.seleccionados) {
+                    for (let id of asientosParaBloquear) {
                         const docRef = doc(db, "asientos_gala", id);
                         lecturas.push(transaction.get(docRef));
                     }
@@ -390,7 +393,7 @@
                     }
 
                     const tiempoFormulario = new Date().getTime() + (5 * 60 * 1000); 
-                    for (let id of window.seleccionados) {
+                    for (let id of asientosParaBloquear) {
                         const docRef = doc(db, "asientos_gala", id);
                         transaction.set(docRef, {
                             estado: "bloqueado", 
@@ -401,14 +404,13 @@
                     }
                 });
 
-                // SI GANAMOS:
-                window.reservadosDB = [...window.seleccionados]; 
+                // ✅ ÉXITO: Usamos la variable congelada, no la global que pudo cambiar
+                window.reservadosDB = [...asientosParaBloquear]; 
                 window.seleccionados = []; 
                 btnFlotante.style.display = 'none';
                 abrirModalFormulario(); 
 
             } catch (error) {
-                // SI PERDIMOS (Ocupada):
                 if (error.message.includes("OCUPADA")) {
                     mostrarAlerta("🔒 ¡Lo sentimos! \n\nAlguien fue más rápido y acaba de pre-reservar una de tus butacas.\n\nPor favor, recarga para ver las disponibles.", 'reload');
                 } else {
@@ -455,6 +457,7 @@
 
             try {
                 const batch = writeBatch(db);
+                
                 window.reservadosDB.forEach(id => {
                     const docRef = doc(db, "asientos_gala", id);
                     batch.update(docRef, {
