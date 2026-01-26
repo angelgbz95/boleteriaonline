@@ -34,13 +34,22 @@
         /* --- BUTACAS --- */
         .asiento {
             height: 45px;
-            background-color: #2ecc71; /* VERDE */
+            background-color: #2ecc71; /* VERDE GENERAL */
             border-radius: 8px; cursor: pointer;
             display: flex; align-items: center; justify-content: center;
             font-weight: bold; font-size: 14px;
             transition: all 0.2s; position: relative;
             box-shadow: 0 4px 0 #27ae60; color: black;
         }
+        
+        /* ESTILO VIP (Dorado) */
+        .asiento.vip {
+            background-color: #8e44ad; /* Violeta/Dorado para VIP */
+            box-shadow: 0 4px 0 #6c3483;
+            color: white;
+            border: 1px solid #a569bd;
+        }
+
         .asiento:active { transform: translateY(4px); box-shadow: none; }
         
         .asiento.seleccionado { 
@@ -48,12 +57,13 @@
             box-shadow: 0 4px 0 #2980b9 !important; 
             color: white !important;
             transform: translateY(2px);
+            border: 2px solid white;
         }
 
-        .asiento.pendiente, .asiento.bloqueado { background-color: #f1c40f; box-shadow: 0 4px 0 #d4ac0d; cursor: not-allowed; color: black; }
-        .asiento.ocupado { background-color: #e74c3c; box-shadow: 0 4px 0 #c0392b; cursor: not-allowed; color: white; }
+        .asiento.pendiente, .asiento.bloqueado { background-color: #f1c40f !important; box-shadow: 0 4px 0 #d4ac0d !important; cursor: not-allowed; color: black !important; border: none; }
+        .asiento.ocupado { background-color: #e74c3c !important; box-shadow: 0 4px 0 #c0392b !important; cursor: not-allowed; color: white !important; border: none; }
 
-        .leyenda { margin-top: 20px; font-size: 14px; }
+        .leyenda { margin-top: 20px; font-size: 14px; display: flex; justify-content: center; gap: 15px; flex-wrap: wrap;}
 
         /* --- BOTÓN FLOTANTE --- */
         #btn-flotante {
@@ -130,12 +140,13 @@
     <div id="contenedor-asientos" class="sala">Cargando mapa...</div>
 
     <div class="leyenda">
-        <span style="color:#2ecc71">■ Libre</span> &nbsp; 
-        <span style="color:#3498db">■ Tu Selección</span> &nbsp;
+        <span style="color:#8e44ad">■ VIP ($10k)</span> &nbsp;
+        <span style="color:#2ecc71">■ Gral ($5k)</span> &nbsp; 
+        <span style="color:#3498db">■ Tuya</span> &nbsp;
         <span style="color:#e74c3c">■ Ocupado</span>
     </div>
 
-    <button id="btn-flotante" onclick="preBloquearButacas()">CONTINUAR (0)</button>
+    <button id="btn-flotante" onclick="preBloquearButacas()">CONTINUAR ($0)</button>
 
     <div id="modalCerrado" class="modal-fondo">
         <div class="modal-contenido modal-cerrado">
@@ -236,15 +247,26 @@
             appId: "1:888414257363:web:7653fbdf87284bd6645426"
         };
         
-        const PRECIO_UNITARIO = 5000; 
+        // ======================================================================
+        // 💰 CONFIGURACIÓN DE PRECIOS DIFERENCIADOS 💰
+        // ======================================================================
+        
+        const PRECIO_VIP = 10000;    // Filas de adelante (Ej: Fila 1)
+        const PRECIO_GRAL = 5000;    // Resto de filas
+
+        // TABLA DE LINKS POR "MONTO TOTAL" (Suma de lo que elija el cliente)
         const LINKS_MP = {
-            1: "https://mpago.la/1dGP6Qs",  
-            2: "https://mpago.la/LINK_2",   
-            3: "https://mpago.la/LINK_3",   
-            4: "https://mpago.la/LINK_4",   
-            5: "https://mpago.la/LINK_5"    
+            5000:  "https://mpago.la/2iQ4B57",
+            10000: "https://mpago.la/2niAJr2",
+            15000: "https://mpago.la/24oypiy",
+            20000: "https://mpago.la/1VGP9Vx",
+            25000: "https://mpago.la/2HiKNPr",
+            30000: "https://mpago.la/2ryhY7P"
+            // Agrega todos los montos posibles aquí
         };
-        const LINK_DEFAULT = "https://wa.me/5493764374689"; 
+        const LINK_DEFAULT = "https://wa.me/5493764374689"; // Si el monto es raro, va al WhatsApp
+
+        // ======================================================================
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
@@ -260,7 +282,6 @@
         const btnAlerta = document.getElementById('btn-alerta');
 
         const btnLinkPago = document.getElementById('btn-link-pago');
-        const lblAsientosSel = document.getElementById('lbl-asientos-seleccionados');
         const tButacasFinal = document.getElementById('t-butacas-final');
         const txtTotalForm = document.getElementById('txt-total-form');
         const txtTotalFinal = document.getElementById('txt-total-final');
@@ -269,12 +290,13 @@
         window.seleccionados = []; 
         window.reservadosDB = [];  
         window.pagandoGlobal = false;
-        let reservaEliminadaPorSalida = false; 
+        let reservaEliminadaPorSalida = false;
+        let timeoutFormulario; 
 
         // --- MAPA ---
         const mapa = [
-            "AAA_AAA",
-            "AAA_AAA",
+            "AAA_AAA", // Fila 1 (VIP)
+            "AAA_AAA", // Fila 2 (Gral)
             "AAA_AAA",
             "AAA_AAA",
             "AAA_AAA"
@@ -288,6 +310,9 @@
             mapa.forEach((filaTexto, indexFila) => {
                 let f = indexFila + 1;
                 let c = 0;
+                // DETERMINAR CATEGORÍA POR FILA (Lógica simple para prueba)
+                const esVIP = (f === 1); 
+
                 for (let i = 0; i < filaTexto.length; i++) {
                     const caracter = filaTexto[i];
                     const div = document.createElement('div');
@@ -298,6 +323,13 @@
                         c++;
                         const id = `F${f}-A${c}`; 
                         div.classList.add('asiento');
+                        
+                        // Agregar clase VIP si corresponde
+                        if (esVIP) div.classList.add('vip');
+                        
+                        // Guardamos el precio en el elemento para sumarlo fácil después
+                        div.dataset.precio = esVIP ? PRECIO_VIP : PRECIO_GRAL;
+
                         div.innerText = c; 
                         div.id = `asiento-${id}`;
 
@@ -311,7 +343,6 @@
                                     div.classList.add('pendiente');
                                 }
                             }
-                            // Limpieza automática si el mapa dice que está ocupado pero yo lo tenía
                             if(window.seleccionados.includes(id) && !window.reservadosDB.includes(id)) {
                                 toggleSeleccion(id);
                             }
@@ -339,20 +370,32 @@
             actualizarBotonFlotante();
         }
 
+        // --- CALCULAR TOTAL VISUAL ---
+        function calcularTotalSeleccion() {
+            let total = 0;
+            window.seleccionados.forEach(id => {
+                const div = document.getElementById(`asiento-${id}`);
+                if (div) {
+                    total += parseInt(div.dataset.precio || 0);
+                }
+            });
+            return total;
+        }
+
         function actualizarBotonFlotante() {
             const total = window.seleccionados.length;
+            const monto = calcularTotalSeleccion();
+            
             if (total > 0) {
-                btnFlotante.innerText = `CONTINUAR (${total})`;
+                btnFlotante.innerText = `CONTINUAR ($${monto.toLocaleString()})`;
                 btnFlotante.style.display = 'block';
             } else {
                 btnFlotante.style.display = 'none';
             }
         }
 
-        // --- SISTEMA DE ALERTAS INTELIGENTE ---
         window.mostrarAlerta = function(mensaje, tipo = 'normal') {
             txtAlerta.innerText = mensaje;
-            
             if (tipo === 'reload') {
                 btnAlerta.innerText = "RECARGAR PÁGINA";
                 btnAlerta.onclick = () => window.location.reload();
@@ -360,18 +403,14 @@
                 btnAlerta.innerText = "ENTENDIDO";
                 btnAlerta.onclick = () => cerrarAlerta();
             }
-            
             modalAlerta.style.display = "flex";
         }
         window.cerrarAlerta = function() { modalAlerta.style.display = "none"; }
 
-        // --- 🔒 BLOQUEO ATÓMICO ANTI-GLITCH 🔒 ---
         window.preBloquearButacas = async function() {
             if (window.seleccionados.length === 0) return;
             
-            // ❄️ CONGELAMOS la selección para evitar que el onSnapshot nos robe los datos
             const asientosParaBloquear = [...window.seleccionados]; 
-            
             loadingOverlay.style.display = 'flex'; 
 
             try {
@@ -404,7 +443,6 @@
                     }
                 });
 
-                // ✅ ÉXITO: Usamos la variable congelada, no la global que pudo cambiar
                 window.reservadosDB = [...asientosParaBloquear]; 
                 window.seleccionados = []; 
                 btnFlotante.style.display = 'none';
@@ -422,8 +460,12 @@
         }
 
         function abrirModalFormulario() {
-            const cantidad = window.reservadosDB.length;
-            const totalPesos = cantidad * PRECIO_UNITARIO;
+            // Calcular total final basado en la reserva confirmada
+            let totalPesos = 0;
+            window.reservadosDB.forEach(id => {
+                const div = document.getElementById(`asiento-${id}`);
+                if (div) totalPesos += parseInt(div.dataset.precio || 0);
+            });
             
             txtTotalForm.innerText = `$${totalPesos.toLocaleString()}`;
             
@@ -433,9 +475,17 @@
             document.getElementById('inp-email').value = "";
             
             modalForm.style.display = "flex";
+
+            clearTimeout(timeoutFormulario);
+            timeoutFormulario = setTimeout(async () => {
+                await borrarLoteCompleto();
+                modalForm.style.display = "none";
+                mostrarAlerta("⏳ El tiempo de 5 minutos para completar los datos ha finalizado.\n\nPor favor, vuelve a intentarlo.", 'reload');
+            }, 5 * 60 * 1000); 
         }
 
         window.cancelarFormularioYLiberar = async function() {
+            clearTimeout(timeoutFormulario); 
             await borrarLoteCompleto(); 
             modalForm.style.display = "none";
             window.location.reload(); 
@@ -472,17 +522,26 @@
                 });
 
                 await batch.commit();
+                clearTimeout(timeoutFormulario);
 
                 tButacasFinal.innerText = window.reservadosDB.join(", ");
-                const cantidad = window.reservadosDB.length;
-                const totalFinal = cantidad * PRECIO_UNITARIO;
+                
+                // --- CALCULAR TOTAL Y SELECCIONAR LINK ---
+                let totalFinal = 0;
+                window.reservadosDB.forEach(id => {
+                    const div = document.getElementById(`asiento-${id}`);
+                    if (div) totalFinal += parseInt(div.dataset.precio || 0);
+                });
+                
                 txtTotalFinal.innerText = `$${totalFinal.toLocaleString()}`;
 
                 modalForm.style.display = "none";
                 window.pagandoGlobal = false; 
+                
                 if (modoPago === 'mp') {
                     btnLinkPago.style.display = "block"; 
-                    const linkFinal = LINKS_MP[cantidad] || LINK_DEFAULT;
+                    // BUSCAMOS EL LINK POR MONTO EXACTO
+                    const linkFinal = LINKS_MP[totalFinal] || LINK_DEFAULT;
                     btnLinkPago.href = linkFinal;
                     msjInstrucciones.innerText = "Realiza el pago ahora para confirmar.";
                 } else {
@@ -557,7 +616,7 @@
             }
         }
 
-        window.cerrarModales = function() { modalForm.style.display = "none"; }
+        window.cerrarModales = function() { modalForm.style.display = "none"; clearTimeout(timeoutFormulario); }
         window.abrirConfirmacion = function() { modalConfirmacion.style.display = "flex"; }
         window.cerrarConfirmacion = function() { modalConfirmacion.style.display = "none"; }
 
