@@ -266,6 +266,20 @@
         </div>
     </div>
 
+    <div id="modalExpirado" class="modal-fondo super">
+        <div class="modal-contenido" style="text-align: center; border-color: #f1c40f;">
+            <h2 style="color: #f1c40f;">⚠️ Sesión Expirada</h2>
+            
+            <p style="font-size: 15px; color: #ccc; margin-bottom: 25px; line-height: 1.5;">
+                Por inactividad al minimizar la app, la butaca se ha liberado para otros clientes.
+            </p>
+            
+            <button class="btn-confirmar" onclick="window.location.reload()" style="margin-top:0; background-color: #f1c40f; color:black; box-shadow: none;">
+                RECARGAR PÁGINA
+            </button>
+        </div>
+    </div>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, getDoc } 
@@ -292,6 +306,7 @@
         const modalForm = document.getElementById('modalFormulario');
         const modalPago = document.getElementById('modalPago');
         const modalConfirmacion = document.getElementById('modalConfirmacion');
+        const modalExpirado = document.getElementById('modalExpirado'); // Nuevo
 
         const btnLinkPago = document.getElementById('btn-link-pago');
         const lblAsiento = document.getElementById('lbl-asiento');
@@ -300,7 +315,7 @@
         // VARIABLES GLOBALES
         window.asientoGlobal = ""; 
         window.pagandoGlobal = false;
-        let reservaEliminadaPorSalida = false; // 🚩 NUEVA BANDERA
+        let reservaEliminadaPorSalida = false; // Bandera de control
 
         const mapa = [
             "AAA_AAA",
@@ -362,7 +377,7 @@
             window.asientoGlobal = id; 
             lblAsiento.innerText = id;
             window.pagandoGlobal = false; 
-            reservaEliminadaPorSalida = false; // Resetear bandera
+            reservaEliminadaPorSalida = false; 
             
             document.getElementById('inp-nombre').value = "";
             document.getElementById('inp-dni').value = "";
@@ -376,6 +391,7 @@
             modalForm.style.display = "none";
             modalPago.style.display = "none";
             modalConfirmacion.style.display = "none";
+            modalExpirado.style.display = "none";
             clearInterval(intervalo);
         }
 
@@ -390,7 +406,7 @@
             } catch (error) { alert("Error: " + error.message); }
         }
 
-        // --- 🛡️ FUNCIÓN DE BORRADO DE EMERGENCIA + REINICIO ---
+        // --- 🛡️ FUNCIÓN DE BORRADO DE EMERGENCIA + UI ELEGANTE ---
         window.irAPagar = function() {
             window.pagandoGlobal = true; 
         }
@@ -404,23 +420,19 @@
                     keepalive: true 
                 }).catch(err => console.error("Error al liberar:", err));
 
-                // ¡MARCAMOS QUE SE ELIMINÓ!
-                reservaEliminadaPorSalida = true;
+                reservaEliminadaPorSalida = true; // Marcamos para mostrar el modal luego
             }
         };
 
         // EVENTOS COMBINADOS:
-        // 1. Al minimizar/ocultar -> Borrar reserva.
-        // 2. Al volver (visible) -> Si se borró, recargar página.
-
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'hidden') {
                 liberarEmergencia();
             } else if (document.visibilityState === 'visible') {
-                // EL USUARIO VOLVIÓ: SI LA RESERVA FUE BORRADA, REINICIAR TODO
+                // EL USUARIO VOLVIÓ: SI LA RESERVA FUE BORRADA, MOSTRAR MODAL ELEGANTE
                 if (reservaEliminadaPorSalida) {
-                    alert("⚠️ Sesión expirada por inactividad. La butaca se ha liberado.");
-                    window.location.reload();
+                    cerrarModales(); // Ocultar otros modales para limpiar la vista
+                    modalExpirado.style.display = "flex"; // Mostrar el aviso elegante
                 }
             }
         });
