@@ -42,7 +42,7 @@
             box-shadow: 0 4px 0 #27ae60; color: black;
         }
         
-        /* ESTILO VIP (Dorado/Violeta) */
+        /* ESTILO VIP */
         .asiento.vip {
             background-color: #8e44ad; 
             box-shadow: 0 4px 0 #6c3483;
@@ -125,6 +125,10 @@
         .modal-cerrado { border-color: #e74c3c !important; text-align: center; }
         .icono-cerrado { font-size: 50px; margin: 0; display: block; }
         
+        /* Modal Éxito */
+        .modal-exito { border-color: #2ecc71 !important; text-align: center; }
+        .icono-exito { font-size: 60px; display: block; margin-bottom: 10px; }
+
         #loading-overlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index: 300; justify-content:center; align-items:center; color:white; font-size:20px; font-weight:bold; }
     </style>
 </head>
@@ -211,6 +215,20 @@
         </div>
     </div>
 
+    <div id="modalExito" class="modal-fondo super">
+        <div class="modal-contenido modal-exito">
+            <span class="icono-exito">🎟️✨</span>
+            <h2 style="color: #2ecc71;">¡ENTRADAS CONFIRMADAS!</h2>
+            <p style="font-size: 16px; line-height: 1.6; color: #ccc;">
+                Tu pago ha sido recibido y las butacas ya son tuyas.
+            </p>
+            <p style="font-size: 14px; color: #888;">
+                Te esperamos en la función. ¡Que lo disfrutes!
+            </p>
+            <button class="btn-confirmar" onclick="window.location.reload()" style="background-color: #2ecc71; color:black; box-shadow: none;">VOLVER AL INICIO</button>
+        </div>
+    </div>
+
     <div id="modalConfirmacion" class="modal-fondo super">
         <div class="modal-contenido" style="text-align: center; border-color: #e74c3c;">
             <h2 style="color: #e74c3c;">⚠️ ¿Cancelar?</h2>
@@ -254,7 +272,6 @@
         const PRECIO_VIP = 10000;    // Filas de adelante (Ej: Fila 1)
         const PRECIO_GRAL = 5000;    // Resto de filas
 
-        // TABLA DE LINKS POR "MONTO TOTAL" (Suma de lo que elija el cliente)
         const LINKS_MP = {
             5000:  "https://mpago.la/2iQ4B57",
             10000: "https://mpago.la/2niAJr2",
@@ -262,9 +279,8 @@
             20000: "https://mpago.la/1VGP9Vx",
             25000: "https://mpago.la/2HiKNPr",
             30000: "https://mpago.la/2ryhY7P"
-            // Agrega todos los montos posibles aquí
         };
-        const LINK_DEFAULT = "https://wa.me/5493764374689"; // Si el monto es raro, va al WhatsApp
+        const LINK_DEFAULT = "https://wa.me/5493764374689"; 
 
         // ======================================================================
 
@@ -276,6 +292,7 @@
         
         const modalForm = document.getElementById('modalFormulario');
         const modalPago = document.getElementById('modalPago');
+        const modalExito = document.getElementById('modalExito'); // Nuevo
         const modalConfirmacion = document.getElementById('modalConfirmacion');
         const modalAlerta = document.getElementById('modalAlerta'); 
         const txtAlerta = document.getElementById('txt-alerta'); 
@@ -302,13 +319,14 @@
 
         function dibujarAsientos(datos) {
             limpiarReservasVencidas(datos);
+            checkearConfirmacionAdmin(datos); // <-- AQUÍ CHEQUEAMOS SI EL ADMIN CONFIRMÓ
+
             contenedor.innerHTML = '';
             contenedor.style.gridTemplateColumns = `repeat(${mapa[0].length}, 1fr)`;
 
             mapa.forEach((filaTexto, indexFila) => {
                 let f = indexFila + 1;
                 let c = 0;
-                // DETERMINAR CATEGORÍA POR FILA (Lógica simple para prueba)
                 const esVIP = (f === 1); 
 
                 for (let i = 0; i < filaTexto.length; i++) {
@@ -322,10 +340,7 @@
                         const id = `F${f}-A${c}`; 
                         div.classList.add('asiento');
                         
-                        // Agregar clase VIP si corresponde
                         if (esVIP) div.classList.add('vip');
-                        
-                        // Guardamos el precio en el elemento para sumarlo fácil después
                         div.dataset.precio = esVIP ? PRECIO_VIP : PRECIO_GRAL;
 
                         div.innerText = c; 
@@ -354,6 +369,26 @@
             });
         }
 
+        // --- 🕵️‍♂️ DETECTOR DE ÉXITO EN VIVO ---
+        function checkearConfirmacionAdmin(datos) {
+            // Si el usuario está esperando (tiene reservas en DB)
+            if (window.reservadosDB.length > 0) {
+                // Verificamos si TODAS sus butacas ahora dicen 'ocupado' (Confirmado por Admin)
+                const todasConfirmadas = window.reservadosDB.every(id => datos[id] && datos[id].estado === 'ocupado');
+                
+                if (todasConfirmadas) {
+                    // ¡ÉXITO! El admin confirmó.
+                    clearInterval(intervalo); // Detener reloj
+                    modalPago.style.display = 'none'; // Cerrar espera
+                    modalForm.style.display = 'none';
+                    modalExito.style.display = 'flex'; // Mostrar éxito
+                    
+                    // Limpiamos para que no vuelva a saltar
+                    window.reservadosDB = [];
+                }
+            }
+        }
+
         function toggleSeleccion(id) {
             const div = document.getElementById(`asiento-${id}`);
             const index = window.seleccionados.indexOf(id);
@@ -368,7 +403,6 @@
             actualizarBotonFlotante();
         }
 
-        // --- CALCULAR TOTAL VISUAL ---
         function calcularTotalSeleccion() {
             let total = 0;
             window.seleccionados.forEach(id => {
@@ -458,7 +492,6 @@
         }
 
         function abrirModalFormulario() {
-            // Calcular total final basado en la reserva confirmada
             let totalPesos = 0;
             window.reservadosDB.forEach(id => {
                 const div = document.getElementById(`asiento-${id}`);
@@ -474,7 +507,6 @@
             
             modalForm.style.display = "flex";
 
-            // --- ⏳ RELOJ DE 5 MINUTOS ACTIVO ⏳ ---
             clearTimeout(timeoutFormulario);
             timeoutFormulario = setTimeout(async () => {
                 await borrarLoteCompleto();
@@ -525,7 +557,6 @@
 
                 tButacasFinal.innerText = window.reservadosDB.join(", ");
                 
-                // --- CALCULAR TOTAL Y SELECCIONAR LINK ---
                 let totalFinal = 0;
                 window.reservadosDB.forEach(id => {
                     const div = document.getElementById(`asiento-${id}`);
@@ -538,10 +569,9 @@
                 
                 if (modoPago === 'mp') {
                     btnLinkPago.style.display = "block"; 
-                    // BUSCAMOS EL LINK POR MONTO EXACTO
                     const linkFinal = LINKS_MP[totalFinal] || LINK_DEFAULT;
                     btnLinkPago.href = linkFinal;
-                    msjInstrucciones.innerText = "Realiza el pago ahora para confirmar, y al finalizar dale a “Avisar pago por WhatsApp”.";
+                    msjInstrucciones.innerText = "Realiza el pago ahora para confirmar.";
                 } else {
                     btnLinkPago.style.display = "none"; 
                     msjInstrucciones.innerText = "Paga en efectivo dentro de las 24hs.";
