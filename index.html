@@ -72,7 +72,7 @@
 
         #inp-nombre { text-transform: uppercase; }
 
-/* --- ESTILOS NUEVOS TIPO TARJETA --- */
+        /* --- ESTILOS DE PAGO PREMIUM (TIPO TARJETA) --- */
         .contenedor-pago-tarjeta {
             background-color: #2a2a2a;
             padding: 20px;
@@ -95,19 +95,32 @@
         .txt-principal { color: white; font-weight: 600; font-size: 15px; }
         .txt-secundario { color: #aaa; font-size: 13px; margin-top: 3px; }
 
-        /* Botón a la derecha */
         input[type="radio"] { width: 20px; height: 20px; accent-color: #009ee3; margin-left: 10px; cursor: pointer; }
         .separador-linea { height: 1px; background-color: #444; margin: 5px 0; width: 100%; }
-        }
+
+        /* --- BOTONES PROFESIONALES --- */
         .btn-confirmar {
-            width: 100%; padding: 12px; margin-top: 15px;
-            background-color: #2ecc71; color: black; font-weight: bold;
-            border: none; border-radius: 5px; cursor: pointer; font-size: 16px;
+            width: 100%; padding: 15px; margin-top: 25px;
+            background-color: #2ecc71; color: black;
+            font-weight: 800; font-size: 16px;
+            border: none; border-radius: 8px; cursor: pointer;
+            text-transform: uppercase; letter-spacing: 1px;
+            box-shadow: 0 4px 15px rgba(46, 204, 113, 0.3);
+            transition: all 0.3s ease;
         }
+        .btn-confirmar:hover {
+            background-color: #27ae60; transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(46, 204, 113, 0.5);
+        }
+
         .btn-cancelar {
-            width: 100%; padding: 10px; margin-top: 5px;
-            background-color: transparent; color: #aaa;
-            border: none; cursor: pointer; text-align: center; display: block;
+            width: 100%; padding: 12px; margin-top: 10px;
+            background-color: transparent; color: #777;
+            border: 1px solid transparent; border-radius: 8px;
+            cursor: pointer; font-size: 14px; transition: all 0.3s;
+        }
+        .btn-cancelar:hover {
+            color: #fff; border-color: #555; background-color: rgba(255,255,255,0.05);
         }
 
         /* --- MODAL PAGO LIMPIO --- */
@@ -180,13 +193,14 @@
             <label>Email:</label>
             <input type="email" id="inp-email" placeholder="nombre@mail.com">
 
-<div class="contenedor-pago-tarjeta">
+            <div class="contenedor-pago-tarjeta">
                 <p class="titulo-seccion">Forma de Pago:</p>
                 
                 <label class="fila-pago">
                     <div class="icono-cuadrado icono-mp">
-    <img src="https://img.icons8.com/color/48/mercado-pago.png" alt="Logo MP" style="width: 28px; height: 28px;">
-</div>                    <div class="info-metodo">
+                        <img src="https://img.icons8.com/color/48/mercado-pago.png" alt="Logo MP" style="width: 28px; height: 28px;">
+                    </div>
+                    <div class="info-metodo">
                         <span class="txt-principal">Mercado Pago</span>
                         <span class="txt-secundario">(15 min)</span>
                     </div>
@@ -205,6 +219,11 @@
                 </label>
             </div>
 
+            <button class="btn-confirmar" onclick="guardarPreReserva()">CONTINUAR</button>
+            <button class="btn-cancelar" onclick="cerrarModales()">Cancelar</button>
+        </div>
+    </div>
+
     <div id="modalPago" class="modal-fondo">
         <div class="modal-contenido" style="text-align: center;">
             <h2>⏳ Reserva Iniciada</h2>
@@ -222,16 +241,16 @@
                 </a>
             </div>
             
-            <button class="btn-cancelar" onclick="cerrarModales()">Cerrar</button>
+            <button class="btn-cancelar" onclick="cancelarYLiberar()">Cancelar Reserva</button>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot } 
+        import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, getDoc } 
         from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // TUS CLAVES (Boleteria Piloto)
+        // TUS CLAVES
         const firebaseConfig = {
             apiKey: "AIzaSyDFg-4F6_bVHP7xYAOlUVwFiTTUoZ-ltVc",
             authDomain: "boleteria-piloto.firebaseapp.com",
@@ -298,7 +317,7 @@
             });
         }
 
-        // 2. LIMPIEZA
+        // 2. LIMPIEZA AUTOMÁTICA
         async function limpiarReservasVencidas(datos) {
             const ahora = new Date().getTime(); 
             for (const id in datos) {
@@ -312,15 +331,14 @@
         }
 
         window.abrirFormulario = function(id) {
-            // --- 🕒 PORTERO DIGITAL (09 a 19hs) ---
+            // --- 🕒 PORTERO DIGITAL (DESACTIVADO TEMPORALMENTE) ---
             /* const ahora = new Date();
             const hora = ahora.getHours(); 
             if (hora < 9 || hora >= 19) {
                 document.getElementById('modalCerrado').style.display = 'flex';
                 return; 
-            }
-            */
-            // --------------------------------------
+            } */
+            // ------------------------------------------------------
 
             asientoSeleccionado = id;
             lblAsiento.innerText = id;
@@ -339,7 +357,20 @@
             clearInterval(intervalo);
         }
 
-        // 3. GUARDAR (CON VALIDACIÓN DE DNI 8 DÍGITOS)
+        // 🛑 NUEVA FUNCIÓN: Cancelar y Liberar Asiento
+        window.cancelarYLiberar = async function() {
+            if(confirm("¿Seguro que quieres cancelar? El asiento se liberará.")) {
+                try {
+                    // Borramos la reserva de la base de datos
+                    await deleteDoc(doc(db, "asientos_gala", asientoSeleccionado));
+                    cerrarModales(); // Cerramos la ventana
+                } catch (error) {
+                    alert("Hubo un error al cancelar: " + error.message);
+                }
+            }
+        }
+
+        // 3. GUARDAR (CON VALIDACIÓN DE SEGURIDAD 🛡️)
         window.guardarPreReserva = async function() {
             const nombre = document.getElementById('inp-nombre').value.toUpperCase();
             const dni = document.getElementById('inp-dni').value;
@@ -347,17 +378,31 @@
             const email = document.getElementById('inp-email').value;
             const modoPago = document.querySelector('input[name="pago"]:checked').value;
 
+            // Validaciones básicas
             if (nombre === "" || dni === "" || tel === "") return alert("⚠️ Completa los datos obligatorios.");
-            
-            // ⚠️ AQUÍ ESTÁ EL CAMBIO: Validación estricta de 8 números
             if (dni.length !== 8) return alert("⚠️ El DNI debe tener exactamente 8 números.");
-            
             if (tel.length < 8) return alert("⚠️ El teléfono parece incorrecto.");
 
             let minutos = (modoPago === 'mp') ? 15 : 1440;
             const tiempoLimite = new Date().getTime() + (minutos * 60 * 1000);
 
             try {
+                // 🛡️ SEGURIDAD: VERIFICAR SI YA SE OCUPÓ
+                const docRef = doc(db, "asientos_gala", asientoSeleccionado);
+                const docSnap = await getDoc(docRef);
+
+                if (docSnap.exists()) {
+                    const datos = docSnap.data();
+                    const ahora = new Date().getTime();
+                    
+                    if (datos.estado === 'ocupado' || (datos.estado === 'pendiente' && ahora < datos.limite)) {
+                        alert("⛔ ¡Lo sentimos! \n\nOtra persona acaba de reservar esta butaca hace unos segundos.");
+                        window.location.reload();
+                        return; 
+                    }
+                }
+
+                // Si pasamos el filtro, GUARDAMOS
                 await setDoc(doc(db, "asientos_gala", asientoSeleccionado), {
                     estado: "pendiente", cliente: nombre, dni: dni, telefono: tel, email: email,
                     tipo_pago: modoPago, limite: tiempoLimite, fecha: new Date().toISOString()
@@ -412,5 +457,3 @@
     </script>
 </body>
 </html>
-
-
