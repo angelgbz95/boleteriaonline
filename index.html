@@ -42,9 +42,9 @@
             box-shadow: 0 4px 0 #27ae60; color: black;
         }
         
-        /* ESTILO VIP (Dorado) */
+        /* ESTILO VIP (Dorado/Violeta) */
         .asiento.vip {
-            background-color: #8e44ad; /* Violeta/Dorado para VIP */
+            background-color: #8e44ad; 
             box-shadow: 0 4px 0 #6c3483;
             color: white;
             border: 1px solid #a569bd;
@@ -204,8 +204,8 @@
                 <hr style="border-color:#444">
                 <p>⚠️ Tiempo límite: <br><span id="cronometro" class="destacado">--:--</span></p>
                 <p id="mensaje-instrucciones" style="color:#aaa; font-size:13px"></p>
-                <a id="btn-link-pago" href="#" class="btn-mercado" target="_blank" onclick="irAPagar()">PAGAR AHORA</a>
-                <a href="https://wa.me/5493764374689" target="_blank" class="btn-whatsapp" onclick="irAPagar()">📲 Avisar pago por WhatsApp</a>
+                <a id="btn-link-pago" href="#" class="btn-mercado" target="_blank">PAGAR AHORA</a>
+                <a href="https://wa.me/5493764374689" target="_blank" class="btn-whatsapp">📲 Avisar pago por WhatsApp</a>
             </div>
             <button class="btn-cancelar" onclick="abrirConfirmacion()">Cancelar Todo</button>
         </div>
@@ -289,8 +289,6 @@
         
         window.seleccionados = []; 
         window.reservadosDB = [];  
-        window.pagandoGlobal = false;
-        let reservaEliminadaPorSalida = false;
         let timeoutFormulario; 
 
         // --- MAPA ---
@@ -476,6 +474,7 @@
             
             modalForm.style.display = "flex";
 
+            // --- ⏳ RELOJ DE 5 MINUTOS ACTIVO ⏳ ---
             clearTimeout(timeoutFormulario);
             timeoutFormulario = setTimeout(async () => {
                 await borrarLoteCompleto();
@@ -499,7 +498,7 @@
             const modoPago = document.querySelector('input[name="pago"]:checked').value;
 
             if (nombre === "" || dni === "" || tel === "") return mostrarAlerta("⚠️ Completa los datos.");
-            if (dni.length !== 8) return mostrarAlerta("⚠️ DNI de 8 números.");
+            if (dni.length !== 8) return mostrarAlerta("⚠️ DNI de 8 números. Si tu DNI es de 7 dígitos, anteponé un 0 (cero)");
             if (tel.length < 8) return mostrarAlerta("⚠️ Teléfono incorrecto.");
 
             let minutos = (modoPago === 'mp') ? 15 : 1440;
@@ -536,7 +535,6 @@
                 txtTotalFinal.innerText = `$${totalFinal.toLocaleString()}`;
 
                 modalForm.style.display = "none";
-                window.pagandoGlobal = false; 
                 
                 if (modoPago === 'mp') {
                     btnLinkPago.style.display = "block"; 
@@ -547,7 +545,6 @@
                 } else {
                     btnLinkPago.style.display = "none"; 
                     msjInstrucciones.innerText = "Paga en efectivo dentro de las 24hs.";
-                    window.pagandoGlobal = true; 
                 }
 
                 iniciarCuentaRegresiva(minutos); 
@@ -564,21 +561,6 @@
             });
             window.reservadosDB = []; 
         };
-
-        window.irAPagar = function() { window.pagandoGlobal = true; }
-
-        document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'hidden') {
-                if (window.reservadosDB.length > 0 && !window.pagandoGlobal) {
-                    borrarLoteCompleto();
-                    reservaEliminadaPorSalida = true;
-                }
-            } else if (document.visibilityState === 'visible') {
-                if (reservaEliminadaPorSalida) {
-                    window.location.reload();
-                }
-            }
-        });
 
         window.confirmarCancelacionReal = async function() {
             await borrarLoteCompleto();
