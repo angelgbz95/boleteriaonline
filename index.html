@@ -34,7 +34,7 @@
         /* --- BUTACAS --- */
         .asiento {
             height: 45px;
-            background-color: #2ecc71; /* VERDE (Libre) */
+            background-color: #2ecc71; /* VERDE */
             border-radius: 8px; cursor: pointer;
             display: flex; align-items: center; justify-content: center;
             font-weight: bold; font-size: 14px;
@@ -50,7 +50,8 @@
             transform: translateY(2px);
         }
 
-        .asiento.pendiente { background-color: #f1c40f; box-shadow: 0 4px 0 #d4ac0d; cursor: not-allowed; color: black; }
+        /* Pendiente y Bloqueado se ven igual: Ocupados temporalmente */
+        .asiento.pendiente, .asiento.bloqueado { background-color: #f1c40f; box-shadow: 0 4px 0 #d4ac0d; cursor: not-allowed; color: black; }
         .asiento.ocupado { background-color: #e74c3c; box-shadow: 0 4px 0 #c0392b; cursor: not-allowed; color: white; }
 
         .leyenda { margin-top: 20px; font-size: 14px; }
@@ -114,9 +115,14 @@
         
         .modal-cerrado { border-color: #e74c3c !important; text-align: center; }
         .icono-cerrado { font-size: 50px; margin: 0; display: block; }
+        
+        /* Loading Overlay */
+        #loading-overlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index: 300; justify-content:center; align-items:center; color:white; font-size:20px; font-weight:bold; }
     </style>
 </head>
 <body>
+
+    <div id="loading-overlay">🔒 Bloqueando butacas...</div>
 
     <h1>🩰 Gran Gala de Ballet</h1>
     <p>Selecciona tus butacas</p>
@@ -131,7 +137,7 @@
         <span style="color:#e74c3c">■ Ocupado</span>
     </div>
 
-    <button id="btn-flotante" onclick="abrirFormulario()">CONTINUAR (0)</button>
+    <button id="btn-flotante" onclick="preBloquearButacas()">CONTINUAR (0)</button>
 
     <div id="modalCerrado" class="modal-fondo">
         <div class="modal-contenido modal-cerrado">
@@ -144,7 +150,8 @@
 
     <div id="modalFormulario" class="modal-fondo">
         <div class="modal-contenido">
-            <h2>Reservar <span id="lbl-asientos-seleccionados" style="color:white; font-size: 18px;"></span></h2>
+            <h2>Completar Datos</h2>
+            <p style="color:#aaa; font-size:14px; margin-bottom:15px;">Tus butacas están reservadas por 5 minutos.</p>
             
             <label>Nombre Completo:</label>
             <input type="text" id="inp-nombre" placeholder="Ej: JUAN PÉREZ">
@@ -174,8 +181,9 @@
                 Total a Pagar: <b id="txt-total-form" style="color: #2ecc71; font-size: 1.2em;">$0</b>
             </p>
 
-            <button class="btn-confirmar" onclick="guardarPreReservaSegura()">CONFIRMAR RESERVA</button>
-            <button class="btn-cancelar" onclick="cerrarModales()">Cancelar</button>
+            <button class="btn-confirmar" onclick="actualizarReservaConDatos()">CONFIRMAR RESERVA</button>
+            
+            <button class="btn-cancelar" onclick="cancelarFormularioYLiberar()">Cancelar y Liberar</button>
         </div>
     </div>
 
@@ -184,9 +192,7 @@
             <h2>⏳ Reserva en Proceso</h2>
             <div class="info-pago">
                 <p style="font-size:16px">Butacas reservadas: <br><b id="t-butacas-final" style="color:#d4af37; font-size:18px">--</b></p>
-                
                 <span id="txt-total-final" class="precio-total">$0</span>
-
                 <hr style="border-color:#444">
                 <p>⚠️ Tiempo límite: <br><span id="cronometro" class="destacado">--:--</span></p>
                 <p id="mensaje-instrucciones" style="color:#aaa; font-size:13px"></p>
@@ -217,9 +223,8 @@
     </div>
 
     <script type="module">
-        // Importamos runTransaction que es la clave de la seguridad
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, getDoc, runTransaction } 
+        import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, getDoc, runTransaction, writeBatch } 
         from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const API_KEY = "AIzaSyDFg-4F6_bVHP7xYAOlUVwFiTTUoZ-ltVc";
@@ -234,7 +239,6 @@
             appId: "1:888414257363:web:7653fbdf87284bd6645426"
         };
         
-        // 💰 CONFIGURACIÓN DE PRECIOS Y LINKS 💰
         const PRECIO_UNITARIO = 5000; 
         const LINKS_MP = {
             1: "https://mpago.la/1dGP6Qs",  
@@ -249,6 +253,7 @@
         const db = getFirestore(app);
         const contenedor = document.getElementById('contenedor-asientos');
         const btnFlotante = document.getElementById('btn-flotante');
+        const loadingOverlay = document.getElementById('loading-overlay');
         
         const modalForm = document.getElementById('modalFormulario');
         const modalPago = document.getElementById('modalPago');
@@ -257,10 +262,9 @@
         const txtAlerta = document.getElementById('txt-alerta'); 
 
         const btnLinkPago = document.getElementById('btn-link-pago');
-        const lblAsientosSel = document.getElementById('lbl-asientos-seleccionados');
-        const tButacasFinal = document.getElementById('t-butacas-final');
         const txtTotalForm = document.getElementById('txt-total-form');
         const txtTotalFinal = document.getElementById('txt-total-final');
+        const tButacasFinal = document.getElementById('t-butacas-final');
         const msjInstrucciones = document.getElementById('mensaje-instrucciones');
         
         window.seleccionados = []; 
@@ -299,12 +303,23 @@
                         div.id = `asiento-${id}`;
 
                         if (datos[id]) {
+                            // Estado BLOQUEADO o PENDIENTE o OCUPADO
                             if (datos[id].estado === 'ocupado') {
                                 div.classList.add('ocupado');
                             } else {
-                                div.classList.add('pendiente');
+                                // Si es 'pendiente' o 'bloqueado'
+                                // Si YO lo tengo seleccionado/reservado, lo dejo azul
+                                if (window.reservadosDB.includes(id)) {
+                                    div.classList.add('seleccionado');
+                                } else {
+                                    // Si es de otro, se ve ocupado/pendiente
+                                    div.classList.add('pendiente');
+                                }
                             }
-                            if(window.seleccionados.includes(id)) toggleSeleccion(id);
+                            // Si estaba seleccionado localmente pero alguien lo ganó, quitar selección
+                            if(window.seleccionados.includes(id) && !window.reservadosDB.includes(id)) {
+                                toggleSeleccion(id);
+                            }
                         } else {
                             div.onclick = () => toggleSeleccion(id);
                             if(window.seleccionados.includes(id)) div.classList.add('seleccionado');
@@ -339,18 +354,72 @@
             }
         }
 
-        window.abrirFormulario = function() {
+        // --- 🔒 FASE 1: BLOQUEO ATÓMICO AL DAR CLICK EN CONTINUAR 🔒 ---
+        window.preBloquearButacas = async function() {
             if (window.seleccionados.length === 0) return;
             
-            const cantidad = window.seleccionados.length;
+            loadingOverlay.style.display = 'flex'; // Mostrar "Cargando..."
+
+            try {
+                // INTENTAMOS BLOQUEAR EN LA BD
+                await runTransaction(db, async (transaction) => {
+                    const lecturas = [];
+                    for (let id of window.seleccionados) {
+                        const docRef = doc(db, "asientos_gala", id);
+                        lecturas.push(transaction.get(docRef));
+                    }
+                    const snapshots = await Promise.all(lecturas);
+
+                    // Verificamos si están libres
+                    for (let snap of snapshots) {
+                        if (snap.exists()) {
+                            const datos = snap.data();
+                            // Si existe y no ha expirado
+                            if (datos.limite && new Date().getTime() < datos.limite) {
+                                throw new Error(`La butaca ${snap.id} acaba de ser reservada por otro.`);
+                            }
+                        }
+                    }
+
+                    // Si pasamos, escribimos el BLOQUEO PROVISIONAL
+                    // Usamos un tiempo corto (5 min) para llenar el formulario
+                    const tiempoFormulario = new Date().getTime() + (5 * 60 * 1000); 
+                    
+                    for (let id of window.seleccionados) {
+                        const docRef = doc(db, "asientos_gala", id);
+                        transaction.set(docRef, {
+                            estado: "bloqueado", 
+                            cliente: "Completando Datos...", 
+                            limite: tiempoFormulario,
+                            fecha: new Date().toISOString()
+                        });
+                    }
+                });
+
+                // --- ÉXITO: YA SON NUESTRAS EN LA BD ---
+                window.reservadosDB = [...window.seleccionados]; // Ahora sí están en DB
+                window.seleccionados = []; // Limpiamos la selección visual local
+                btnFlotante.style.display = 'none';
+                
+                // Abrimos formulario
+                abrirModalFormulario();
+
+            } catch (error) {
+                // --- FALLO: ALGUIEN GANÓ ---
+                mostrarAlerta("⚠️ " + error.message);
+                // La DB se refrescará sola por el onSnapshot
+            } finally {
+                loadingOverlay.style.display = 'none';
+            }
+        }
+
+        function abrirModalFormulario() {
+            const cantidad = window.reservadosDB.length;
             const totalPesos = cantidad * PRECIO_UNITARIO;
-
-            lblAsientosSel.innerText = window.seleccionados.join(", ");
-            txtTotalForm.innerText = `$${totalPesos.toLocaleString()}`; 
-
-            window.pagandoGlobal = false; 
-            reservaEliminadaPorSalida = false; 
             
+            txtTotalForm.innerText = `$${totalPesos.toLocaleString()}`;
+            
+            // Limpiar inputs
             document.getElementById('inp-nombre').value = "";
             document.getElementById('inp-dni').value = "";
             document.getElementById('inp-tel').value = "";
@@ -359,9 +428,15 @@
             modalForm.style.display = "flex";
         }
 
-        // --- 🛡️ FUNCIÓN DE RESERVA ATÓMICA CON TRANSACCIONES 🛡️ ---
-        // Esta función evita que dos personas reserven lo mismo al mismo tiempo
-        window.guardarPreReservaSegura = async function() {
+        // --- CANCELAR DESDE EL FORMULARIO (LIBERA EL BLOQUEO) ---
+        window.cancelarFormularioYLiberar = async function() {
+            await borrarLoteCompleto(); // Libera la DB
+            modalForm.style.display = "none";
+            window.location.reload(); // Recarga para limpiar todo
+        }
+
+        // --- 🔒 FASE 2: ACTUALIZAR CON DATOS REALES (CONFIRMAR) 🔒 ---
+        window.actualizarReservaConDatos = async function() {
             const nombre = document.getElementById('inp-nombre').value.toUpperCase();
             const dni = document.getElementById('inp-dni').value;
             const tel = document.getElementById('inp-tel').value;
@@ -374,62 +449,35 @@
 
             let minutos = (modoPago === 'mp') ? 15 : 1440;
             const tiempoLimite = new Date().getTime() + (minutos * 60 * 1000);
-            
+
             try {
-                // 🔐 INICIO DE LA TRANSACCIÓN
-                // Todo lo que pase aquí dentro es una operación única e indivisible
-                await runTransaction(db, async (transaction) => {
-                    
-                    // 1. LEER EL ESTADO DE TODAS LAS BUTACAS SELECCIONADAS
-                    const lecturas = [];
-                    for (let id of window.seleccionados) {
-                        const docRef = doc(db, "asientos_gala", id);
-                        lecturas.push(transaction.get(docRef));
-                    }
-                    
-                    const snapshots = await Promise.all(lecturas);
-
-                    // 2. VERIFICAR SI ALGUNA ESTÁ OCUPADA
-                    for (let snap of snapshots) {
-                        if (snap.exists()) {
-                            const datos = snap.data();
-                            // Si existe y (está ocupada O está pendiente vigente) -> ERROR
-                            if (datos.estado === 'ocupado' || (datos.estado === 'pendiente' && new Date().getTime() < datos.limite)) {
-                                throw new Error(`La butaca ${snap.id} ya no está disponible.`);
-                            }
-                        }
-                    }
-
-                    // 3. SI TODO ESTÁ LIBRE, ESCRIBIR LAS RESERVAS
-                    // (Si llegamos aquí, nadie más ha tocado estas butacas en este milisegundo)
-                    window.reservadosDB = [...window.seleccionados]; 
-                    
-                    for (let id of window.seleccionados) {
-                        const docRef = doc(db, "asientos_gala", id);
-                        transaction.set(docRef, {
-                            estado: "pendiente", 
-                            cliente: nombre, 
-                            dni: dni, 
-                            telefono: tel, 
-                            email: email,
-                            tipo_pago: modoPago, 
-                            limite: tiempoLimite, 
-                            fecha: new Date().toISOString()
-                        });
-                    }
+                const batch = writeBatch(db);
+                
+                // Actualizamos los documentos que YA tenemos bloqueados
+                window.reservadosDB.forEach(id => {
+                    const docRef = doc(db, "asientos_gala", id);
+                    batch.update(docRef, {
+                        estado: "pendiente", // Pasa de bloqueado a pendiente de pago
+                        cliente: nombre, 
+                        dni: dni, 
+                        telefono: tel, 
+                        email: email,
+                        tipo_pago: modoPago, 
+                        limite: tiempoLimite
+                    });
                 });
-                // 🔐 FIN DE LA TRANSACCIÓN (Si no hubo error, se guardó todo con éxito)
 
-                // --- UI DE ÉXITO ---
+                await batch.commit();
+
+                // UI DE PAGO
                 tButacasFinal.innerText = window.reservadosDB.join(", ");
                 const cantidad = window.reservadosDB.length;
                 const totalFinal = cantidad * PRECIO_UNITARIO;
                 txtTotalFinal.innerText = `$${totalFinal.toLocaleString()}`;
 
                 modalForm.style.display = "none";
-                btnFlotante.style.display = "none";
+                
                 window.pagandoGlobal = false; 
-
                 if (modoPago === 'mp') {
                     btnLinkPago.style.display = "block"; 
                     const linkFinal = LINKS_MP[cantidad] || LINK_DEFAULT;
@@ -444,12 +492,7 @@
                 iniciarCuentaRegresiva(minutos); 
                 modalPago.style.display = "flex";
 
-            } catch (error) { 
-                // SI HUBO ERROR (Ej: Alguien ganó la butaca), mostramos alerta
-                mostrarAlerta("⛔ " + error.message);
-                // Opcional: Recargar o limpiar selección de las ocupadas
-                setTimeout(() => window.location.reload(), 2000); 
-            }
+            } catch (error) { mostrarAlerta("Error al confirmar: " + error.message); }
         }
 
         const borrarLoteCompleto = async () => {
@@ -507,7 +550,8 @@
             const ahora = new Date().getTime(); 
             for (const id in datos) {
                 const reserva = datos[id];
-                if (reserva.estado === 'pendiente' && reserva.limite && ahora > reserva.limite) {
+                // Limpia tanto 'pendiente' como 'bloqueado' si vencieron
+                if ((reserva.estado === 'pendiente' || reserva.estado === 'bloqueado') && reserva.limite && ahora > reserva.limite) {
                     try { await deleteDoc(doc(db, "asientos_gala", id)); } catch (e) {}
                 }
             }
@@ -515,9 +559,7 @@
 
         window.mostrarAlerta = function(m) { txtAlerta.innerText = m; modalAlerta.style.display = "flex"; }
         window.cerrarAlerta = function() { modalAlerta.style.display = "none"; }
-        window.cerrarModales = function() {
-            modalForm.style.display = "none";
-        }
+        window.cerrarModales = function() { modalForm.style.display = "none"; }
         window.abrirConfirmacion = function() { modalConfirmacion.style.display = "flex"; }
         window.cerrarConfirmacion = function() { modalConfirmacion.style.display = "none"; }
 
