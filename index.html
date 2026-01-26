@@ -53,6 +53,9 @@
             background-color: rgba(0,0,0,0.9);
             justify-content: center; align-items: center; z-index: 100;
         }
+        
+        /* Z-Index mayor para que la confirmación salga encima del pago */
+        .modal-fondo.super { z-index: 200; }
 
         .modal-contenido {
             background-color: #222; padding: 25px; border-radius: 10px;
@@ -241,7 +244,27 @@
                 </a>
             </div>
             
-            <button class="btn-cancelar" onclick="cancelarYLiberar()">Cancelar Reserva</button>
+            <button class="btn-cancelar" onclick="abrirConfirmacion()">Cancelar Reserva</button>
+        </div>
+    </div>
+
+    <div id="modalConfirmacion" class="modal-fondo super">
+        <div class="modal-contenido" style="text-align: center; border-color: #e74c3c;">
+            <h2 style="color: #e74c3c;">⚠️ ¿Cancelar Reserva?</h2>
+            
+            <p style="font-size: 15px; color: #ccc; margin-bottom: 25px; line-height: 1.5;">
+                Si cancelas ahora, la butaca se liberará inmediatamente y otra persona podrá ocuparla.
+            </p>
+            
+            <div style="display: flex; gap: 10px;">
+                <button class="btn-cancelar" onclick="cerrarConfirmacion()" style="margin-top:0; border:1px solid #555; background:#222; color:white;">
+                    VOLVER
+                </button>
+                
+                <button class="btn-confirmar" onclick="confirmarCancelacionReal()" style="margin-top:0; background-color: #e74c3c; box-shadow: none;">
+                    SÍ, CANCELAR
+                </button>
+            </div>
         </div>
     </div>
 
@@ -268,6 +291,8 @@
         
         const modalForm = document.getElementById('modalFormulario');
         const modalPago = document.getElementById('modalPago');
+        const modalConfirmacion = document.getElementById('modalConfirmacion'); // Nuevo
+
         const btnLinkPago = document.getElementById('btn-link-pago');
         const lblAsiento = document.getElementById('lbl-asiento');
         const msjInstrucciones = document.getElementById('mensaje-instrucciones');
@@ -331,15 +356,6 @@
         }
 
         window.abrirFormulario = function(id) {
-            // --- 🕒 PORTERO DIGITAL (DESACTIVADO TEMPORALMENTE) ---
-            /* const ahora = new Date();
-            const hora = ahora.getHours(); 
-            if (hora < 9 || hora >= 19) {
-                document.getElementById('modalCerrado').style.display = 'flex';
-                return; 
-            } */
-            // ------------------------------------------------------
-
             asientoSeleccionado = id;
             lblAsiento.innerText = id;
             
@@ -354,21 +370,30 @@
         window.cerrarModales = function() {
             modalForm.style.display = "none";
             modalPago.style.display = "none";
+            modalConfirmacion.style.display = "none";
             clearInterval(intervalo);
         }
 
-        // 🛑 NUEVA FUNCIÓN: Cancelar y Liberar Asiento
-        window.cancelarYLiberar = async function() {
-            if(confirm("¿Seguro que quieres cancelar? El asiento se liberará.")) {
-                try {
-                    // Borramos la reserva de la base de datos
-                    await deleteDoc(doc(db, "asientos_gala", asientoSeleccionado));
-                    cerrarModales(); // Cerramos la ventana
-                } catch (error) {
-                    alert("Hubo un error al cancelar: " + error.message);
-                }
+        // --- FUNCIONES DEL NUEVO MODAL ELEGANTE ---
+        window.abrirConfirmacion = function() {
+            modalConfirmacion.style.display = "flex";
+        }
+
+        window.cerrarConfirmacion = function() {
+            modalConfirmacion.style.display = "none";
+        }
+
+        window.confirmarCancelacionReal = async function() {
+            try {
+                // Borramos la reserva de la base de datos
+                await deleteDoc(doc(db, "asientos_gala", asientoSeleccionado));
+                cerrarConfirmacion(); // Cierra el aviso
+                cerrarModales();      // Cierra todo lo demás
+            } catch (error) {
+                alert("Hubo un error al cancelar: " + error.message);
             }
         }
+        // ------------------------------------------
 
         // 3. GUARDAR (CON VALIDACIÓN DE SEGURIDAD 🛡️)
         window.guardarPreReserva = async function() {
