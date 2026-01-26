@@ -271,7 +271,6 @@
         import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, getDoc } 
         from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // TUS CLAVES (CONSTANTES PARA EL MÓDULO)
         const API_KEY = "AIzaSyDFg-4F6_bVHP7xYAOlUVwFiTTUoZ-ltVc";
         const PROJECT_ID = "boleteria-piloto";
 
@@ -298,9 +297,10 @@
         const lblAsiento = document.getElementById('lbl-asiento');
         const msjInstrucciones = document.getElementById('mensaje-instrucciones');
         
-        // VARIABLES GLOBALES PARA ACCESO EXTERNO
+        // VARIABLES GLOBALES
         window.asientoGlobal = ""; 
-        window.pagandoGlobal = false; 
+        window.pagandoGlobal = false;
+        let reservaEliminadaPorSalida = false; // 🚩 NUEVA BANDERA
 
         const mapa = [
             "AAA_AAA",
@@ -359,9 +359,10 @@
         }
 
         window.abrirFormulario = function(id) {
-            window.asientoGlobal = id; // Actualizar variable global
+            window.asientoGlobal = id; 
             lblAsiento.innerText = id;
             window.pagandoGlobal = false; 
+            reservaEliminadaPorSalida = false; // Resetear bandera
             
             document.getElementById('inp-nombre').value = "";
             document.getElementById('inp-dni').value = "";
@@ -389,29 +390,39 @@
             } catch (error) { alert("Error: " + error.message); }
         }
 
-        // --- 🛡️ FUNCIÓN DE BORRADO DE EMERGENCIA (KEEP-ALIVE) ---
+        // --- 🛡️ FUNCIÓN DE BORRADO DE EMERGENCIA + REINICIO ---
         window.irAPagar = function() {
-            window.pagandoGlobal = true; // El usuario va a MP, es seguro
+            window.pagandoGlobal = true; 
         }
 
         const liberarEmergencia = () => {
             if (window.asientoGlobal && !window.pagandoGlobal) {
-                // Construimos la URL REST de Firestore manualmente
-                // Esto permite usar 'keepalive: true' que sobrevive al cierre del navegador móvil
                 const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/asientos_gala/${window.asientoGlobal}?key=${API_KEY}`;
                 
                 fetch(url, {
                     method: 'DELETE',
-                    keepalive: true // ⚡ LA CLAVE MÁGICA PARA MÓVILES
-                }).catch(err => console.error("Error al liberar en salida:", err));
+                    keepalive: true 
+                }).catch(err => console.error("Error al liberar:", err));
+
+                // ¡MARCAMOS QUE SE ELIMINÓ!
+                reservaEliminadaPorSalida = true;
             }
         };
 
-        // Escuchamos AMBOS eventos para cubrir PC y Celular
-        window.addEventListener('beforeunload', liberarEmergencia);
-        window.addEventListener('pagehide', liberarEmergencia); // Específico para Safari/iOS/Android
-        window.addEventListener('visibilitychange', () => {
-             if (document.visibilityState === 'hidden') liberarEmergencia();
+        // EVENTOS COMBINADOS:
+        // 1. Al minimizar/ocultar -> Borrar reserva.
+        // 2. Al volver (visible) -> Si se borró, recargar página.
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden') {
+                liberarEmergencia();
+            } else if (document.visibilityState === 'visible') {
+                // EL USUARIO VOLVIÓ: SI LA RESERVA FUE BORRADA, REINICIAR TODO
+                if (reservaEliminadaPorSalida) {
+                    alert("⚠️ Sesión expirada por inactividad. La butaca se ha liberado.");
+                    window.location.reload();
+                }
+            }
         });
         // --------------------------------------------------------
 
