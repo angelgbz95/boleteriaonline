@@ -296,7 +296,7 @@
         const msjInstrucciones = document.getElementById('mensaje-instrucciones');
         
         let asientoSeleccionado = "";
-        let pagando = false; // 🚩 BANDERA DE CONTROL
+        let pagando = false; 
 
         const mapa = [
             "AAA_AAA",
@@ -355,10 +355,9 @@
         }
 
         window.abrirFormulario = function(id) {
-            // --- PORTERO DIGITAL DESACTIVADO ---
             asientoSeleccionado = id;
             lblAsiento.innerText = id;
-            pagando = false; // Reseteamos la bandera
+            pagando = false; 
             
             document.getElementById('inp-nombre').value = "";
             document.getElementById('inp-dni').value = "";
@@ -394,22 +393,25 @@
             }
         }
 
-        // --- 🛡️ DETECTOR DE SALIDA DE PESTAÑA ---
+        // --- 🛡️ DETECTOR DE SALIDA PARA CELULARES ---
         window.irAPagar = function() {
-            pagando = true; // El usuario va a MP, NO borrar
+            pagando = true; // El usuario va a MP, es seguro
         }
 
-        window.addEventListener('beforeunload', function (e) {
-            // Si hay un asiento seleccionado Y el usuario NO está yendo a pagar...
+        // Función que intenta borrar si el usuario se va sin pagar
+        const liberarAlSalir = () => {
             if (asientoSeleccionado && !pagando) {
-                // ... intentamos borrar la reserva al cerrar
-                // Nota: Los navegadores limitan esto, pero es el mejor intento posible.
+                // Intento de borrado de emergencia
                 deleteDoc(doc(db, "asientos_gala", asientoSeleccionado));
             }
-        });
-        // ----------------------------------------
+        };
 
-        // 3. GUARDAR (CON VALIDACIÓN)
+        // Escuchamos AMBOS eventos para cubrir PC y Celular
+        window.addEventListener('beforeunload', liberarAlSalir);
+        window.addEventListener('pagehide', liberarAlSalir); // ESTE es el clave para móviles
+        // ---------------------------------------------
+
+        // 3. GUARDAR
         window.guardarPreReserva = async function() {
             const nombre = document.getElementById('inp-nombre').value.toUpperCase();
             const dni = document.getElementById('inp-dni').value;
@@ -447,7 +449,7 @@
                 document.getElementById('t-butaca').innerText = asientoSeleccionado;
                 modalForm.style.display = "none";
                 
-                pagando = false; // Aún no ha pagado
+                pagando = false; 
 
                 if (modoPago === 'mp') {
                     btnLinkPago.style.display = "block"; 
@@ -456,7 +458,7 @@
                 } else {
                     btnLinkPago.style.display = "none"; 
                     msjInstrucciones.innerText = "Acércate a pagar en efectivo dentro de las 24hs.";
-                    pagando = true; // En efectivo, se considera "finalizado" el trámite online
+                    pagando = true; // Efectivo se considera "finalizado" en web
                 }
 
                 iniciarCuentaRegresiva(minutos); 
