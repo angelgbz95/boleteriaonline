@@ -7,7 +7,7 @@
     
     <style>
         /* --- ESTILO GENERAL --- */
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121212; color: white; text-align: center; margin: 0; padding-bottom: 80px; /* Espacio para botón flotante */ }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121212; color: white; text-align: center; margin: 0; padding-bottom: 80px; }
         
         h1 { color: #d4af37; text-transform: uppercase; letter-spacing: 3px; margin-top: 40px; text-shadow: 0 0 10px rgba(212, 175, 55, 0.5); font-size: 24px; }
         p { color: #888; }
@@ -43,7 +43,6 @@
         }
         .asiento:active { transform: translateY(4px); box-shadow: none; }
         
-        /* AZUL (Seleccionado por mi) */
         .asiento.seleccionado { 
             background-color: #3498db !important; 
             box-shadow: 0 4px 0 #2980b9 !important; 
@@ -56,9 +55,9 @@
 
         .leyenda { margin-top: 20px; font-size: 14px; }
 
-        /* --- BOTÓN FLOTANTE DE CONFIRMACIÓN (NUEVO) --- */
+        /* --- BOTÓN FLOTANTE --- */
         #btn-flotante {
-            display: none; /* Oculto hasta seleccionar */
+            display: none;
             position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
             background-color: #d4af37; color: black;
             padding: 15px 30px; border-radius: 50px;
@@ -71,11 +70,7 @@
         @keyframes subir { from { bottom: -50px; } to { bottom: 20px; } }
 
         /* --- MODALES --- */
-        .modal-fondo {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(0,0,0,0.9);
-            justify-content: center; align-items: center; z-index: 100;
-        }
+        .modal-fondo { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.9); justify-content: center; align-items: center; z-index: 100; }
         .modal-fondo.super { z-index: 200; }
 
         .modal-contenido {
@@ -84,14 +79,13 @@
             border: 2px solid #d4af37; box-shadow: 0 0 20px rgba(212, 175, 55, 0.3);
             position: relative; max-height: 90vh; overflow-y: auto;
         }
+        .modal-contenido::-webkit-scrollbar { width: 8px; }
+        .modal-contenido::-webkit-scrollbar-track { background: #111; border-radius: 4px; }
+        .modal-contenido::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
         
         .modal-contenido h2 { margin-top: 0; color: #d4af37; text-align: center; font-size: 22px; margin-bottom: 15px; }
         
-        input {
-            width: 100%; padding: 10px; margin: 5px 0;
-            border-radius: 5px; border: 1px solid #555;
-            background: #333; color: white; box-sizing: border-box; font-size: 16px; 
-        }
+        input { width: 100%; padding: 10px; margin: 5px 0; border-radius: 5px; border: 1px solid #555; background: #333; color: white; box-sizing: border-box; font-size: 16px; }
         label { font-size: 14px; color: #ccc; margin-top: 5px; display: block; }
         #inp-nombre { text-transform: uppercase; }
 
@@ -108,13 +102,16 @@
         input[type="radio"] { width: 20px; height: 20px; accent-color: #009ee3; margin-left: 10px; cursor: pointer; }
         .separador-linea { height: 1px; background-color: #444; margin: 5px 0; width: 100%; }
 
-        /* --- BOTONES --- */
         .btn-confirmar { width: 100%; padding: 15px; margin-top: 20px; background-color: #2ecc71; color: black; font-weight: 800; font-size: 16px; border: none; border-radius: 8px; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 4px 15px rgba(46, 204, 113, 0.3); transition: all 0.3s ease; }
         .btn-cancelar { width: 100%; padding: 12px; margin-top: 10px; background-color: transparent; color: #777; border: 1px solid transparent; border-radius: 8px; cursor: pointer; font-size: 14px; transition: all 0.3s; }
+        
         .info-pago { background: #333; padding: 15px; border-radius: 5px; margin: 15px 0; font-size: 14px; line-height: 1.5; color: #ddd; text-align: center; }
         .destacado { color: #f1c40f; font-weight: bold; font-size: 1.3em; }
+        .precio-total { color: #2ecc71; font-weight: bold; font-size: 1.2em; display: block; margin: 10px 0; }
+        
         .btn-whatsapp { color: #25D366; text-decoration: none; font-weight: bold; font-size: 1.2em; display: block; margin-top: 10px; border: 1px solid #25D366; padding: 8px; border-radius: 5px; text-align: center; transition: all 0.3s; }
         .btn-mercado { background-color: #009ee3; color: white; width: 100%; padding: 15px; border: none; border-radius: 5px; font-weight: bold; font-size: 18px; cursor: pointer; margin-top: 10px; text-decoration: none; display: block; text-align: center; box-sizing: border-box; }
+        
         .modal-cerrado { border-color: #e74c3c !important; text-align: center; }
         .icono-cerrado { font-size: 50px; margin: 0; display: block; }
     </style>
@@ -173,7 +170,11 @@
                 </label>
             </div>
 
-            <button class="btn-confirmar" onclick="guardarPreReservaEnLote()">CONFIRMAR RESERVA</button>
+            <p style="text-align: center; margin: 10px 0; color: #ccc;">
+                Total a Pagar: <b id="txt-total-form" style="color: #2ecc71; font-size: 1.2em;">$0</b>
+            </p>
+
+            <button class="btn-confirmar" onclick="guardarPreReservaSegura()">CONFIRMAR RESERVA</button>
             <button class="btn-cancelar" onclick="cerrarModales()">Cancelar</button>
         </div>
     </div>
@@ -183,6 +184,9 @@
             <h2>⏳ Reserva en Proceso</h2>
             <div class="info-pago">
                 <p style="font-size:16px">Butacas reservadas: <br><b id="t-butacas-final" style="color:#d4af37; font-size:18px">--</b></p>
+                
+                <span id="txt-total-final" class="precio-total">$0</span>
+
                 <hr style="border-color:#444">
                 <p>⚠️ Tiempo límite: <br><span id="cronometro" class="destacado">--:--</span></p>
                 <p id="mensaje-instrucciones" style="color:#aaa; font-size:13px"></p>
@@ -213,8 +217,9 @@
     </div>
 
     <script type="module">
+        // Importamos runTransaction que es la clave de la seguridad
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, getDoc, writeBatch } 
+        import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, getDoc, runTransaction } 
         from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const API_KEY = "AIzaSyDFg-4F6_bVHP7xYAOlUVwFiTTUoZ-ltVc";
@@ -229,14 +234,22 @@
             appId: "1:888414257363:web:7653fbdf87284bd6645426"
         };
         
-        var LINK_DE_PAGO = "https://mpago.la/1dGP6Qs"; 
+        // 💰 CONFIGURACIÓN DE PRECIOS Y LINKS 💰
+        const PRECIO_UNITARIO = 5000; 
+        const LINKS_MP = {
+            1: "https://mpago.la/1dGP6Qs",  
+            2: "https://mpago.la/LINK_2",   
+            3: "https://mpago.la/LINK_3",   
+            4: "https://mpago.la/LINK_4",   
+            5: "https://mpago.la/LINK_5"    
+        };
+        const LINK_DEFAULT = "https://wa.me/5493764374689"; 
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const contenedor = document.getElementById('contenedor-asientos');
         const btnFlotante = document.getElementById('btn-flotante');
         
-        // MODALES
         const modalForm = document.getElementById('modalFormulario');
         const modalPago = document.getElementById('modalPago');
         const modalConfirmacion = document.getElementById('modalConfirmacion');
@@ -246,15 +259,16 @@
         const btnLinkPago = document.getElementById('btn-link-pago');
         const lblAsientosSel = document.getElementById('lbl-asientos-seleccionados');
         const tButacasFinal = document.getElementById('t-butacas-final');
+        const txtTotalForm = document.getElementById('txt-total-form');
+        const txtTotalFinal = document.getElementById('txt-total-final');
         const msjInstrucciones = document.getElementById('mensaje-instrucciones');
         
-        // --- ESTADO GLOBAL ---
-        window.seleccionados = []; // Array de IDs seleccionados localmente
-        window.reservadosDB = [];  // Array de IDs ya guardados en Firebase (para borrar si cancela)
+        window.seleccionados = []; 
+        window.reservadosDB = [];  
         window.pagandoGlobal = false;
         let reservaEliminadaPorSalida = false; 
 
-        // --- MAPA (Aquí pondremos el real luego) ---
+        // --- MAPA ---
         const mapa = [
             "AAA_AAA",
             "AAA_AAA",
@@ -263,7 +277,6 @@
             "AAA_AAA"
         ];
 
-        // 1. DIBUJAR
         function dibujarAsientos(datos) {
             limpiarReservasVencidas(datos);
             contenedor.innerHTML = '';
@@ -283,21 +296,17 @@
                         const id = `F${f}-A${c}`; 
                         div.classList.add('asiento');
                         div.innerText = c; 
-                        div.id = `asiento-${id}`; // ID DOM para manipular estilos
+                        div.id = `asiento-${id}`;
 
-                        // ESTADOS
                         if (datos[id]) {
                             if (datos[id].estado === 'ocupado') {
                                 div.classList.add('ocupado');
                             } else {
                                 div.classList.add('pendiente');
                             }
-                            // Si estaba seleccionado localmente pero alguien lo ocupó, deseleccionar
                             if(window.seleccionados.includes(id)) toggleSeleccion(id);
                         } else {
-                            // Si está libre, permitir click
                             div.onclick = () => toggleSeleccion(id);
-                            // Mantener selección visual si redibuja
                             if(window.seleccionados.includes(id)) div.classList.add('seleccionado');
                         }
                         contenedor.appendChild(div);
@@ -306,17 +315,14 @@
             });
         }
 
-        // --- LÓGICA DE SELECCIÓN MÚLTIPLE ---
         function toggleSeleccion(id) {
             const div = document.getElementById(`asiento-${id}`);
             const index = window.seleccionados.indexOf(id);
 
             if (index === -1) {
-                // Agregar
                 window.seleccionados.push(id);
                 div.classList.add('seleccionado');
             } else {
-                // Quitar
                 window.seleccionados.splice(index, 1);
                 div.classList.remove('seleccionado');
             }
@@ -336,11 +342,15 @@
         window.abrirFormulario = function() {
             if (window.seleccionados.length === 0) return;
             
+            const cantidad = window.seleccionados.length;
+            const totalPesos = cantidad * PRECIO_UNITARIO;
+
             lblAsientosSel.innerText = window.seleccionados.join(", ");
+            txtTotalForm.innerText = `$${totalPesos.toLocaleString()}`; 
+
             window.pagandoGlobal = false; 
             reservaEliminadaPorSalida = false; 
             
-            // Limpiar inputs
             document.getElementById('inp-nombre').value = "";
             document.getElementById('inp-dni').value = "";
             document.getElementById('inp-tel').value = "";
@@ -349,8 +359,9 @@
             modalForm.style.display = "flex";
         }
 
-        // --- GUARDADO EN LOTE (BATCH) ---
-        window.guardarPreReservaEnLote = async function() {
+        // --- 🛡️ FUNCIÓN DE RESERVA ATÓMICA CON TRANSACCIONES 🛡️ ---
+        // Esta función evita que dos personas reserven lo mismo al mismo tiempo
+        window.guardarPreReservaSegura = async function() {
             const nombre = document.getElementById('inp-nombre').value.toUpperCase();
             const dni = document.getElementById('inp-dni').value;
             const tel = document.getElementById('inp-tel').value;
@@ -364,45 +375,65 @@
             let minutos = (modoPago === 'mp') ? 15 : 1440;
             const tiempoLimite = new Date().getTime() + (minutos * 60 * 1000);
             
-            // 1. Verificar disponibilidad de TODOS primero
-            for (let id of window.seleccionados) {
-                const docRef = doc(db, "asientos_gala", id);
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists()) {
-                    mostrarAlerta(`⛔ La butaca ${id} acaba de ser ocupada.`);
-                    window.seleccionados = window.seleccionados.filter(s => s !== id); // Quitar la ocupada
-                    dibujarAsientos({}); // Redibujar
-                    actualizarBotonFlotante();
-                    modalForm.style.display = 'none';
-                    return; 
-                }
-            }
-
-            // 2. Guardar todos
             try {
-                const batch = writeBatch(db); // Usamos batch para eficiencia
-                window.reservadosDB = [...window.seleccionados]; // Guardamos copia para cancelar luego
+                // 🔐 INICIO DE LA TRANSACCIÓN
+                // Todo lo que pase aquí dentro es una operación única e indivisible
+                await runTransaction(db, async (transaction) => {
+                    
+                    // 1. LEER EL ESTADO DE TODAS LAS BUTACAS SELECCIONADAS
+                    const lecturas = [];
+                    for (let id of window.seleccionados) {
+                        const docRef = doc(db, "asientos_gala", id);
+                        lecturas.push(transaction.get(docRef));
+                    }
+                    
+                    const snapshots = await Promise.all(lecturas);
 
-                window.seleccionados.forEach(id => {
-                    const docRef = doc(db, "asientos_gala", id);
-                    batch.set(docRef, {
-                        estado: "pendiente", cliente: nombre, dni: dni, telefono: tel, email: email,
-                        tipo_pago: modoPago, limite: tiempoLimite, fecha: new Date().toISOString()
-                    });
+                    // 2. VERIFICAR SI ALGUNA ESTÁ OCUPADA
+                    for (let snap of snapshots) {
+                        if (snap.exists()) {
+                            const datos = snap.data();
+                            // Si existe y (está ocupada O está pendiente vigente) -> ERROR
+                            if (datos.estado === 'ocupado' || (datos.estado === 'pendiente' && new Date().getTime() < datos.limite)) {
+                                throw new Error(`La butaca ${snap.id} ya no está disponible.`);
+                            }
+                        }
+                    }
+
+                    // 3. SI TODO ESTÁ LIBRE, ESCRIBIR LAS RESERVAS
+                    // (Si llegamos aquí, nadie más ha tocado estas butacas en este milisegundo)
+                    window.reservadosDB = [...window.seleccionados]; 
+                    
+                    for (let id of window.seleccionados) {
+                        const docRef = doc(db, "asientos_gala", id);
+                        transaction.set(docRef, {
+                            estado: "pendiente", 
+                            cliente: nombre, 
+                            dni: dni, 
+                            telefono: tel, 
+                            email: email,
+                            tipo_pago: modoPago, 
+                            limite: tiempoLimite, 
+                            fecha: new Date().toISOString()
+                        });
+                    }
                 });
+                // 🔐 FIN DE LA TRANSACCIÓN (Si no hubo error, se guardó todo con éxito)
 
-                await batch.commit(); // Ejecutar todo junto
-
-                // UI
+                // --- UI DE ÉXITO ---
                 tButacasFinal.innerText = window.reservadosDB.join(", ");
+                const cantidad = window.reservadosDB.length;
+                const totalFinal = cantidad * PRECIO_UNITARIO;
+                txtTotalFinal.innerText = `$${totalFinal.toLocaleString()}`;
+
                 modalForm.style.display = "none";
                 btnFlotante.style.display = "none";
-                
-                // Configurar Pago
                 window.pagandoGlobal = false; 
+
                 if (modoPago === 'mp') {
                     btnLinkPago.style.display = "block"; 
-                    btnLinkPago.href = LINK_DE_PAGO;
+                    const linkFinal = LINKS_MP[cantidad] || LINK_DEFAULT;
+                    btnLinkPago.href = linkFinal;
                     msjInstrucciones.innerText = "Realiza el pago ahora para confirmar.";
                 } else {
                     btnLinkPago.style.display = "none"; 
@@ -413,26 +444,25 @@
                 iniciarCuentaRegresiva(minutos); 
                 modalPago.style.display = "flex";
 
-            } catch (error) { mostrarAlerta("Error: " + error.message); }
+            } catch (error) { 
+                // SI HUBO ERROR (Ej: Alguien ganó la butaca), mostramos alerta
+                mostrarAlerta("⛔ " + error.message);
+                // Opcional: Recargar o limpiar selección de las ocupadas
+                setTimeout(() => window.location.reload(), 2000); 
+            }
         }
 
-        // --- LIMPIEZA Y SEGURIDAD ---
-        
-        // Función para borrar TODO el lote
         const borrarLoteCompleto = async () => {
             if (window.reservadosDB.length === 0) return;
-            // Borrado "Best Effort"
             window.reservadosDB.forEach(id => {
-                // Intentamos usar REST API para mobile survival
                 const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/asientos_gala/${id}?key=${API_KEY}`;
                 fetch(url, { method: 'DELETE', keepalive: true }).catch(e => {});
             });
-            window.reservadosDB = []; // Limpiar memoria
+            window.reservadosDB = []; 
         };
 
         window.irAPagar = function() { window.pagandoGlobal = true; }
 
-        // Eventos de salida
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'hidden') {
                 if (window.reservadosDB.length > 0 && !window.pagandoGlobal) {
@@ -451,7 +481,6 @@
             window.location.reload();
         }
 
-        // --- RELOJ Y ALERTS ---
         let intervalo;
         function iniciarCuentaRegresiva(minutos) {
             clearInterval(intervalo);
@@ -488,8 +517,6 @@
         window.cerrarAlerta = function() { modalAlerta.style.display = "none"; }
         window.cerrarModales = function() {
             modalForm.style.display = "none";
-            // Si cierra el form sin confirmar, limpia la selección visual local
-            // (Opcional, pero mejor UX no limpiar por si solo quería ver el precio)
         }
         window.abrirConfirmacion = function() { modalConfirmacion.style.display = "flex"; }
         window.cerrarConfirmacion = function() { modalConfirmacion.style.display = "none"; }
