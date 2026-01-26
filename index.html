@@ -271,12 +271,15 @@
         import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, getDoc } 
         from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // TUS CLAVES
+        // TUS CLAVES (CONSTANTES PARA EL MÓDULO)
+        const API_KEY = "AIzaSyDFg-4F6_bVHP7xYAOlUVwFiTTUoZ-ltVc";
+        const PROJECT_ID = "boleteria-piloto";
+
         const firebaseConfig = {
-            apiKey: "AIzaSyDFg-4F6_bVHP7xYAOlUVwFiTTUoZ-ltVc",
-            authDomain: "boleteria-piloto.firebaseapp.com",
-            projectId: "boleteria-piloto",
-            storageBucket: "boleteria-piloto.firebasestorage.app",
+            apiKey: API_KEY,
+            authDomain: `${PROJECT_ID}.firebaseapp.com`,
+            projectId: PROJECT_ID,
+            storageBucket: `${PROJECT_ID}.firebasestorage.app`,
             messagingSenderId: "888414257363",
             appId: "1:888414257363:web:7653fbdf87284bd6645426"
         };
@@ -295,8 +298,9 @@
         const lblAsiento = document.getElementById('lbl-asiento');
         const msjInstrucciones = document.getElementById('mensaje-instrucciones');
         
-        let asientoSeleccionado = "";
-        let pagando = false; 
+        // VARIABLES GLOBALES PARA ACCESO EXTERNO
+        window.asientoGlobal = ""; 
+        window.pagandoGlobal = false; 
 
         const mapa = [
             "AAA_AAA",
@@ -355,9 +359,9 @@
         }
 
         window.abrirFormulario = function(id) {
-            asientoSeleccionado = id;
+            window.asientoGlobal = id; // Actualizar variable global
             lblAsiento.innerText = id;
-            pagando = false; 
+            window.pagandoGlobal = false; 
             
             document.getElementById('inp-nombre').value = "";
             document.getElementById('inp-dni').value = "";
@@ -374,42 +378,42 @@
             clearInterval(intervalo);
         }
 
-        // --- FUNCIONES DEL MODAL ELEGANTE ---
-        window.abrirConfirmacion = function() {
-            modalConfirmacion.style.display = "flex";
-        }
-
-        window.cerrarConfirmacion = function() {
-            modalConfirmacion.style.display = "none";
-        }
+        window.abrirConfirmacion = function() { modalConfirmacion.style.display = "flex"; }
+        window.cerrarConfirmacion = function() { modalConfirmacion.style.display = "none"; }
 
         window.confirmarCancelacionReal = async function() {
             try {
-                await deleteDoc(doc(db, "asientos_gala", asientoSeleccionado));
+                await deleteDoc(doc(db, "asientos_gala", window.asientoGlobal));
                 cerrarConfirmacion(); 
                 cerrarModales();      
-            } catch (error) {
-                alert("Hubo un error al cancelar: " + error.message);
-            }
+            } catch (error) { alert("Error: " + error.message); }
         }
 
-        // --- 🛡️ DETECTOR DE SALIDA PARA CELULARES ---
+        // --- 🛡️ FUNCIÓN DE BORRADO DE EMERGENCIA (KEEP-ALIVE) ---
         window.irAPagar = function() {
-            pagando = true; // El usuario va a MP, es seguro
+            window.pagandoGlobal = true; // El usuario va a MP, es seguro
         }
 
-        // Función que intenta borrar si el usuario se va sin pagar
-        const liberarAlSalir = () => {
-            if (asientoSeleccionado && !pagando) {
-                // Intento de borrado de emergencia
-                deleteDoc(doc(db, "asientos_gala", asientoSeleccionado));
+        const liberarEmergencia = () => {
+            if (window.asientoGlobal && !window.pagandoGlobal) {
+                // Construimos la URL REST de Firestore manualmente
+                // Esto permite usar 'keepalive: true' que sobrevive al cierre del navegador móvil
+                const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/asientos_gala/${window.asientoGlobal}?key=${API_KEY}`;
+                
+                fetch(url, {
+                    method: 'DELETE',
+                    keepalive: true // ⚡ LA CLAVE MÁGICA PARA MÓVILES
+                }).catch(err => console.error("Error al liberar en salida:", err));
             }
         };
 
         // Escuchamos AMBOS eventos para cubrir PC y Celular
-        window.addEventListener('beforeunload', liberarAlSalir);
-        window.addEventListener('pagehide', liberarAlSalir); // ESTE es el clave para móviles
-        // ---------------------------------------------
+        window.addEventListener('beforeunload', liberarEmergencia);
+        window.addEventListener('pagehide', liberarEmergencia); // Específico para Safari/iOS/Android
+        window.addEventListener('visibilitychange', () => {
+             if (document.visibilityState === 'hidden') liberarEmergencia();
+        });
+        // --------------------------------------------------------
 
         // 3. GUARDAR
         window.guardarPreReserva = async function() {
@@ -419,37 +423,36 @@
             const email = document.getElementById('inp-email').value;
             const modoPago = document.querySelector('input[name="pago"]:checked').value;
 
-            if (nombre === "" || dni === "" || tel === "") return alert("⚠️ Completa los datos obligatorios.");
-            if (dni.length !== 8) return alert("⚠️ El DNI debe tener exactamente 8 números.");
-            if (tel.length < 8) return alert("⚠️ El teléfono parece incorrecto.");
+            if (nombre === "" || dni === "" || tel === "") return alert("⚠️ Completa los datos.");
+            if (dni.length !== 8) return alert("⚠️ DNI debe tener 8 números.");
+            if (tel.length < 8) return alert("⚠️ Teléfono incorrecto.");
 
             let minutos = (modoPago === 'mp') ? 15 : 1440;
             const tiempoLimite = new Date().getTime() + (minutos * 60 * 1000);
 
             try {
-                const docRef = doc(db, "asientos_gala", asientoSeleccionado);
+                const docRef = doc(db, "asientos_gala", window.asientoGlobal);
                 const docSnap = await getDoc(docRef);
 
                 if (docSnap.exists()) {
                     const datos = docSnap.data();
                     const ahora = new Date().getTime();
-                    
                     if (datos.estado === 'ocupado' || (datos.estado === 'pendiente' && ahora < datos.limite)) {
-                        alert("⛔ ¡Lo sentimos! \n\nOtra persona acaba de reservar esta butaca.");
+                        alert("⛔ Butaca ocupada recientemente.");
                         window.location.reload();
                         return; 
                     }
                 }
 
-                await setDoc(doc(db, "asientos_gala", asientoSeleccionado), {
+                await setDoc(doc(db, "asientos_gala", window.asientoGlobal), {
                     estado: "pendiente", cliente: nombre, dni: dni, telefono: tel, email: email,
                     tipo_pago: modoPago, limite: tiempoLimite, fecha: new Date().toISOString()
                 });
 
-                document.getElementById('t-butaca').innerText = asientoSeleccionado;
+                document.getElementById('t-butaca').innerText = window.asientoGlobal;
                 modalForm.style.display = "none";
                 
-                pagando = false; 
+                window.pagandoGlobal = false; 
 
                 if (modoPago === 'mp') {
                     btnLinkPago.style.display = "block"; 
@@ -458,7 +461,7 @@
                 } else {
                     btnLinkPago.style.display = "none"; 
                     msjInstrucciones.innerText = "Acércate a pagar en efectivo dentro de las 24hs.";
-                    pagando = true; // Efectivo se considera "finalizado" en web
+                    window.pagandoGlobal = true; 
                 }
 
                 iniciarCuentaRegresiva(minutos); 
@@ -481,7 +484,7 @@
                 
                 if (tiempo <= 0) {
                     clearInterval(intervalo);
-                    try { await deleteDoc(doc(db, "asientos_gala", asientoSeleccionado)); } catch (e) {}
+                    try { await deleteDoc(doc(db, "asientos_gala", window.asientoGlobal)); } catch (e) {}
                     alert("⚠️ Tiempo agotado. Se liberó el asiento.");
                     window.location.reload();
                 } else {
