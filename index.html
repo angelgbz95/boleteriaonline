@@ -54,7 +54,6 @@
             justify-content: center; align-items: center; z-index: 100;
         }
         
-        /* Z-Index mayor para que la confirmación salga encima del pago */
         .modal-fondo.super { z-index: 200; }
 
         .modal-contenido {
@@ -237,7 +236,7 @@
                 <p>⚠️ Tiempo límite para pagar: <br><span id="cronometro" class="destacado">--:--</span></p>
                 <p id="mensaje-instrucciones" style="color:#aaa; font-size:13px"></p>
                 
-                <a id="btn-link-pago" href="#" class="btn-mercado" target="_blank">PAGAR AHORA</a>
+                <a id="btn-link-pago" href="#" class="btn-mercado" target="_blank" onclick="irAPagar()">PAGAR AHORA</a>
                 
                 <a href="https://wa.me/5493764374689" target="_blank" class="btn-whatsapp">
                     📲 Avisar pago por WhatsApp
@@ -260,7 +259,6 @@
                 <button class="btn-cancelar" onclick="cerrarConfirmacion()" style="margin-top:0; border:1px solid #555; background:#222; color:white;">
                     VOLVER
                 </button>
-                
                 <button class="btn-confirmar" onclick="confirmarCancelacionReal()" style="margin-top:0; background-color: #e74c3c; box-shadow: none;">
                     SÍ, CANCELAR
                 </button>
@@ -291,13 +289,14 @@
         
         const modalForm = document.getElementById('modalFormulario');
         const modalPago = document.getElementById('modalPago');
-        const modalConfirmacion = document.getElementById('modalConfirmacion'); // Nuevo
+        const modalConfirmacion = document.getElementById('modalConfirmacion');
 
         const btnLinkPago = document.getElementById('btn-link-pago');
         const lblAsiento = document.getElementById('lbl-asiento');
         const msjInstrucciones = document.getElementById('mensaje-instrucciones');
         
-        let asientoSeleccionado = ""; 
+        let asientoSeleccionado = "";
+        let pagando = false; // 🚩 BANDERA DE CONTROL
 
         const mapa = [
             "AAA_AAA",
@@ -356,8 +355,10 @@
         }
 
         window.abrirFormulario = function(id) {
+            // --- PORTERO DIGITAL DESACTIVADO ---
             asientoSeleccionado = id;
             lblAsiento.innerText = id;
+            pagando = false; // Reseteamos la bandera
             
             document.getElementById('inp-nombre').value = "";
             document.getElementById('inp-dni').value = "";
@@ -374,7 +375,7 @@
             clearInterval(intervalo);
         }
 
-        // --- FUNCIONES DEL NUEVO MODAL ELEGANTE ---
+        // --- FUNCIONES DEL MODAL ELEGANTE ---
         window.abrirConfirmacion = function() {
             modalConfirmacion.style.display = "flex";
         }
@@ -385,17 +386,30 @@
 
         window.confirmarCancelacionReal = async function() {
             try {
-                // Borramos la reserva de la base de datos
                 await deleteDoc(doc(db, "asientos_gala", asientoSeleccionado));
-                cerrarConfirmacion(); // Cierra el aviso
-                cerrarModales();      // Cierra todo lo demás
+                cerrarConfirmacion(); 
+                cerrarModales();      
             } catch (error) {
                 alert("Hubo un error al cancelar: " + error.message);
             }
         }
-        // ------------------------------------------
 
-        // 3. GUARDAR (CON VALIDACIÓN DE SEGURIDAD 🛡️)
+        // --- 🛡️ DETECTOR DE SALIDA DE PESTAÑA ---
+        window.irAPagar = function() {
+            pagando = true; // El usuario va a MP, NO borrar
+        }
+
+        window.addEventListener('beforeunload', function (e) {
+            // Si hay un asiento seleccionado Y el usuario NO está yendo a pagar...
+            if (asientoSeleccionado && !pagando) {
+                // ... intentamos borrar la reserva al cerrar
+                // Nota: Los navegadores limitan esto, pero es el mejor intento posible.
+                deleteDoc(doc(db, "asientos_gala", asientoSeleccionado));
+            }
+        });
+        // ----------------------------------------
+
+        // 3. GUARDAR (CON VALIDACIÓN)
         window.guardarPreReserva = async function() {
             const nombre = document.getElementById('inp-nombre').value.toUpperCase();
             const dni = document.getElementById('inp-dni').value;
@@ -403,7 +417,6 @@
             const email = document.getElementById('inp-email').value;
             const modoPago = document.querySelector('input[name="pago"]:checked').value;
 
-            // Validaciones básicas
             if (nombre === "" || dni === "" || tel === "") return alert("⚠️ Completa los datos obligatorios.");
             if (dni.length !== 8) return alert("⚠️ El DNI debe tener exactamente 8 números.");
             if (tel.length < 8) return alert("⚠️ El teléfono parece incorrecto.");
@@ -412,7 +425,6 @@
             const tiempoLimite = new Date().getTime() + (minutos * 60 * 1000);
 
             try {
-                // 🛡️ SEGURIDAD: VERIFICAR SI YA SE OCUPÓ
                 const docRef = doc(db, "asientos_gala", asientoSeleccionado);
                 const docSnap = await getDoc(docRef);
 
@@ -421,13 +433,12 @@
                     const ahora = new Date().getTime();
                     
                     if (datos.estado === 'ocupado' || (datos.estado === 'pendiente' && ahora < datos.limite)) {
-                        alert("⛔ ¡Lo sentimos! \n\nOtra persona acaba de reservar esta butaca hace unos segundos.");
+                        alert("⛔ ¡Lo sentimos! \n\nOtra persona acaba de reservar esta butaca.");
                         window.location.reload();
                         return; 
                     }
                 }
 
-                // Si pasamos el filtro, GUARDAMOS
                 await setDoc(doc(db, "asientos_gala", asientoSeleccionado), {
                     estado: "pendiente", cliente: nombre, dni: dni, telefono: tel, email: email,
                     tipo_pago: modoPago, limite: tiempoLimite, fecha: new Date().toISOString()
@@ -436,6 +447,8 @@
                 document.getElementById('t-butaca').innerText = asientoSeleccionado;
                 modalForm.style.display = "none";
                 
+                pagando = false; // Aún no ha pagado
+
                 if (modoPago === 'mp') {
                     btnLinkPago.style.display = "block"; 
                     btnLinkPago.href = LINK_DE_PAGO;
@@ -443,6 +456,7 @@
                 } else {
                     btnLinkPago.style.display = "none"; 
                     msjInstrucciones.innerText = "Acércate a pagar en efectivo dentro de las 24hs.";
+                    pagando = true; // En efectivo, se considera "finalizado" el trámite online
                 }
 
                 iniciarCuentaRegresiva(minutos); 
