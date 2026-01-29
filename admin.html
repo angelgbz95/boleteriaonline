@@ -7,49 +7,95 @@
     <style>
         body { background-color: #1a1a1a; color: white; font-family: 'Segoe UI', sans-serif; text-align: center; padding: 20px; }
         
-        h1 { color: #f1c40f; letter-spacing: 2px; text-transform: uppercase; }
-        
-        .instrucciones { 
-            background: #333; padding: 15px; display: inline-block; 
-            border-radius: 8px; margin-bottom: 20px; border: 1px solid #555;
+        h1 { color: #f1c40f; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 5px; }
+        .subtitulo { color: #888; font-size: 14px; margin-bottom: 20px; }
+
+        /* --- ESTILOS DEL LOGIN --- */
+        #pantalla-login {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: #000; z-index: 9999;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+        }
+        .login-box {
+            background: #222; padding: 30px; border-radius: 10px;
+            border: 2px solid #d4af37; text-align: center;
+        }
+        .login-input {
+            padding: 10px; font-size: 18px; border-radius: 5px; border: 1px solid #555;
+            background: #333; color: white; margin-bottom: 10px; width: 200px; text-align: center;
+        }
+        .btn-login {
+            padding: 10px 20px; background: #d4af37; color: black; font-weight: bold;
+            border: none; border-radius: 5px; cursor: pointer; font-size: 16px; width: 100%;
         }
 
-        /* --- GRILLA CON PASILLO (7 COLUMNAS) --- */
+        /* --- CONTROLES SUPERIORES --- */
+        .panel-controles {
+            display: flex; justify-content: center; gap: 15px; margin-bottom: 30px; flex-wrap: wrap;
+        }
+        #btn-sonido {
+            background: #333; color: #888; border: 1px solid #555;
+            padding: 10px 20px; border-radius: 50px; cursor: pointer; transition: all 0.3s;
+        }
+        #btn-sonido.activo { background: #2ecc71; color: black; border-color: #2ecc71; font-weight: bold; }
+        
+        .btn-reset {
+            background-color: #c0392b; color: white; padding: 10px 20px;
+            border: none; border-radius: 50px; cursor: pointer; font-weight: bold;
+            border: 1px solid #e74c3c;
+        }
+
+        /* --- MAPA INTERACTIVO --- */
         .sala {
             display: grid;
-            grid-template-columns: repeat(7, 1fr); /* 3 izq + 1 pasillo + 3 der = 7 */
-            gap: 10px;
-            max-width: 600px; /* Un poco más ancho para el pasillo */
-            margin: 0 auto;
-            padding: 20px;
-            background: #000;
-            border-radius: 15px;
-            border: 1px solid #444;
+            grid-template-columns: repeat(7, 1fr); 
+            gap: 5px; max-width: 400px; margin: 0 auto 40px auto;
+            padding: 15px; background: #111;
+            border-radius: 15px; border: 1px solid #333;
         }
-
-        .asiento {
-            height: 45px;
-            border-radius: 5px;
+        .asiento-mapa {
+            height: 35px; border-radius: 4px; font-size: 11px;
             display: flex; align-items: center; justify-content: center;
-            font-weight: bold; cursor: pointer; color: black; font-size: 14px;
+            font-weight: bold; color: black; cursor: pointer;
             transition: transform 0.1s;
         }
-        .asiento:active { transform: scale(0.95); }
+        .asiento-mapa:hover { transform: scale(1.1); border: 1px solid white; }
+        
+        .libre { background-color: #2ecc71; }
+        .pendiente { background-color: #f1c40f; }
+        .ocupado { background-color: #e74c3c; color: white; }
 
-        /* ESTADOS */
-        .libre { background-color: #2ecc71; color: black; } /* VERDE */
-        .pendiente { background-color: #f1c40f; color: black; } /* AMARILLO */
-        .ocupado { background-color: #e74c3c; color: white; } /* ROJO */
-
-        /* BOTÓN DE PÁNICO */
-        .btn-reset {
-            background-color: #c0392b; color: white; padding: 15px 30px;
-            border: none; border-radius: 8px; cursor: pointer; font-weight: bold;
-            margin-top: 30px; border: 2px solid #e74c3c;
+        /* --- RADAR DE TARJETAS --- */
+        h3 { border-bottom: 1px solid #444; padding-bottom: 10px; max-width: 1200px; margin: 0 auto 20px auto; text-align: left; color: #d4af37; }
+        
+        .grid-reservas {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;
+            max-width: 1200px; margin: 0 auto; text-align: left;
         }
-        .btn-reset:hover { background-color: #a93226; }
 
-        /* MODAL DE GESTIÓN */
+        .card {
+            background-color: #222; border: 1px solid #333; border-radius: 10px;
+            padding: 15px; position: relative; transition: transform 0.2s;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        
+        .card.pendiente { border-left: 5px solid #f1c40f; }
+        .card.ocupado { border-left: 5px solid #2ecc71; opacity: 0.8; }
+
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .butaca-id { font-size: 24px; font-weight: bold; color: #d4af37; }
+        .timer { font-family: monospace; font-size: 18px; color: #f1c40f; background: #000; padding: 2px 6px; border-radius: 4px; }
+
+        .info-row { margin: 5px 0; font-size: 14px; color: #ccc; }
+        .info-row b { color: white; }
+
+        .acciones { display: flex; gap: 10px; margin-top: 15px; }
+        .btn-card { flex: 1; padding: 10px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .btn-confirmar { background-color: #2ecc71; color: black; }
+        .btn-liberar { background-color: transparent; border: 1px solid #e74c3c; color: #e74c3c; }
+
+        /* --- MODALES --- */
         .modal-fondo {
             display: none; position: fixed; top: 0; left: 0; 
             width: 100%; height: 100%; background: rgba(0,0,0,0.85); 
@@ -60,234 +106,423 @@
             width: 90%; max-width: 400px; text-align: left;
             border: 2px solid #f1c40f; box-shadow: 0 0 30px rgba(0,0,0,0.5);
         }
-        .dato-fila { 
-            margin: 10px 0; padding-bottom: 10px; border-bottom: 1px solid #444; 
-            font-size: 15px;
+        
+        /* Formulario de Venta Manual */
+        .input-manual {
+            width: 100%; padding: 10px; margin: 5px 0 15px 0;
+            background: #333; border: 1px solid #555; color: white;
+            border-radius: 5px; box-sizing: border-box;
         }
+        .label-manual { font-size: 12px; color: #aaa; text-transform: uppercase; }
+
+        /* Visualización de Datos */
+        .dato-fila { margin: 10px 0; padding-bottom: 10px; border-bottom: 1px solid #444; font-size: 15px; }
         .dato-label { color: #888; font-size: 12px; display: block; margin-bottom: 3px; }
         .dato-valor { color: white; font-weight: bold; font-size: 16px; }
 
-        .acciones { display: flex; gap: 10px; margin-top: 20px; }
+        .btn-manual { width: 100%; padding: 12px; background: #d4af37; border: none; font-weight: bold; border-radius: 5px; cursor: pointer; color: black; margin-top: 10px;}
+        .btn-cerrar { width: 100%; background: #444; color: #ccc; margin-top: 10px; padding: 10px; border:none; border-radius:5px; cursor: pointer;}
         
-        button { flex: 1; padding: 12px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
-        
-        .btn-pagar { background: #27ae60; color: white; }
-        .btn-borrar { background: #e74c3c; color: white; }
-        .btn-cerrar { background: #555; color: white; }
-
-        /* TABLA LISTADO */
-        table { width: 100%; max-width: 800px; margin: 40px auto; border-collapse: collapse; background: #222; font-size: 14px; text-align: left;}
-        th, td { padding: 10px; border-bottom: 1px solid #444; }
-        th { color: #f1c40f; }
+        #overlay-bloqueo {
+            display: none; position: fixed; top:0; left:0; width:100%; height:100%;
+            background: rgba(0,0,0,0.5); z-index: 2000; color: white;
+            justify-content: center; align-items: center; font-weight: bold;
+        }
     </style>
 </head>
 <body>
 
-    <h1>👮‍♂️ CENTRO DE COMANDO</h1>
-    
-    <div class="instrucciones">
-        🟢 Libre &nbsp;|&nbsp; 🟡 Reservado &nbsp;|&nbsp; 🔴 Pagado
+    <div id="overlay-bloqueo">⏳ Bloqueando butaca...</div>
+
+    <div id="pantalla-login">
+        <div class="login-box">
+            <h2 style="color:#d4af37; margin-top:0;">🛡️ ACCESO RESTRINGIDO</h2>
+            <p>Solo personal autorizado</p>
+            <input type="password" id="admin-pass" class="login-input" placeholder="Contraseña">
+            <br>
+            <button class="btn-login" onclick="verificarAcceso()">ENTRAR</button>
+        </div>
     </div>
 
-    <div id="contenedor-asientos" class="sala"></div>
+    <div id="modalInactividad" class="modal-fondo" style="z-index: 3000;">
+        <div class="modal-card" style="border-color: #e74c3c; text-align: center;">
+            <h2 style="color: #e74c3c;">⌛ TIEMPO DE INACTIVIDAD EXCEDIDO</h2>
+            <p style="color: #ccc; font-size: 16px;">Se ha superado el tiempo límite para la operación manual.</p>
+            <p style="font-size: 13px; color: #888; margin-bottom: 20px;">La butaca ha sido liberada para otros clientes.</p>
+            <button class="btn-cerrar" onclick="window.location.reload()" style="background: #e74c3c; color: white; font-weight: bold;">🔄 REFRESCAR PÁGINA</button>
+        </div>
+    </div>
 
-    <button class="btn-reset" onclick="liberarTodasLasButacas()">☢️ LIBERAR TODA LA SALA</button>
+    <h1>👮‍♂️ CENTRO DE COMANDO</h1>
+    <div class="subtitulo">Haz click en el mapa para Vender o Gestionar</div>
+    
+    <div class="panel-controles">
+        <button id="btn-sonido" onclick="activarSonido()">🔔 ACTIVAR ALERTAS DE SONIDO</button>
+        <button class="btn-reset" onclick="liberarTodasLasButacas()">☢️ RESETEAR SALA</button>
+    </div>
 
-    <h3>📋 Listado de Asistentes</h3>
-    <table id="tabla-reservas">
-        <thead>
-            <tr>
-                <th>Butaca</th>
-                <th>Cliente</th>
-                <th>Estado</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
+    <div id="contenedor-mapa" class="sala"></div>
+
+    <h3>📡 Radar de Actividad Online</h3>
+    <div id="contenedor-reservas" class="grid-reservas">
+        <p style="color:#666;">Esperando actividad...</p>
+    </div>
 
     <div id="modalGestion" class="modal-fondo">
         <div class="modal-card">
-            <h2 style="color:#f1c40f; margin-top:0;">Gestionar: <span id="m-asiento"></span></h2>
+            <h2 style="color:#f1c40f; margin-top:0; text-align: center;">Butaca: <span id="m-asiento-titulo"></span></h2>
             
-            <div class="dato-fila">
-                <span class="dato-label">CLIENTE</span>
-                <span id="m-cliente" class="dato-valor">---</span>
-            </div>
-            <div class="dato-fila">
-                <span class="dato-label">DNI</span>
-                <span id="m-dni" class="dato-valor">---</span>
-            </div>
-            <div class="dato-fila">
-                <span class="dato-label">TELÉFONO</span>
-                <a id="m-tel-link" href="#" target="_blank" style="color:#2ecc71; text-decoration:none;">
-                    <span id="m-tel" class="dato-valor">---</span> (WhatsApp)
-                </a>
-            </div>
-            <div class="dato-fila">
-                <span class="dato-label">MÉTODO DE PAGO</span>
-                <span id="m-pago" class="dato-valor">---</span>
+            <div id="vista-venta-manual" style="display:none;">
+                <p style="color:#2ecc71; text-align:center; font-weight:bold;">🟢 DISPONIBLE - VENTA MOSTRADOR</p>
+                <p style="color:#aaa; font-size:12px; text-align:center;">Se liberará en 5 min si no guardas.</p>
+                
+                <label class="label-manual">Nombre del Padre/Alumno:</label>
+                <input type="text" id="inp-man-nombre" class="input-manual" placeholder="Ej: MARIA GOMEZ">
+                
+                <label class="label-manual">DNI:</label>
+                <input type="tel" id="inp-man-dni" class="input-manual" placeholder="Solo números">
+
+                <label class="label-manual">Teléfono (Opcional):</label>
+                <input type="tel" id="inp-man-tel" class="input-manual" placeholder="Para contacto">
+
+                <button class="btn-manual" onclick="guardarVentaManual()">💾 CONFIRMAR VENTA (EFECTIVO)</button>
             </div>
 
-            <div class="acciones">
-                <button id="btn-accion-pagar" class="btn-pagar" onclick="confirmarPago()">✅ Confirmar</button>
-                <button id="btn-accion-borrar" class="btn-borrar" onclick="eliminarReserva()">🗑️ Eliminar</button>
-                <button class="btn-cerrar" onclick="cerrarModal()">Cancelar</button>
+            <div id="vista-info-reserva" style="display:none;">
+                <div class="dato-fila"><span class="dato-label">ESTADO</span><span id="m-estado" class="dato-valor">---</span></div>
+                <div class="dato-fila"><span class="dato-label">CLIENTE</span><span id="m-cliente" class="dato-valor">---</span></div>
+                <div class="dato-fila"><span class="dato-label">DNI</span><span id="m-dni" class="dato-valor">---</span></div>
+                <div class="dato-fila"><span class="dato-label">TELÉFONO</span>
+                    <a id="m-tel-link" href="#" target="_blank" style="color:#2ecc71; text-decoration:none;">
+                        <span id="m-tel" class="dato-valor">---</span>
+                    </a>
+                </div>
+                
+                <div class="acciones">
+                    <button id="btn-m-confirmar" class="btn-card btn-confirmar" onclick="confirmarDesdeModal()">✅ Confirmar</button>
+                    <button class="btn-card btn-liberar" onclick="liberarDesdeModal()">🗑️ Liberar</button>
+                </div>
             </div>
+
+            <button class="btn-cerrar" onclick="cerrarModal()">Cerrar / Cancelar</button>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, getDocs } 
+        import { getFirestore, collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, getDocs, runTransaction } 
         from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // ⚠️ PEGA TUS CLAVES AQUÍ (Reemplaza este bloque con las tuyas) ⚠️
+        const API_KEY = "AIzaSyDFg-4F6_bVHP7xYAOlUVwFiTTUoZ-ltVc";
+        const PROJECT_ID = "boleteria-piloto";
+
         const firebaseConfig = {
-            apiKey: "AIzaSyDFg-4F6_bVHP7xYAOlUVwFiTTUoZ-ltVc",
-            authDomain: "boleteria-piloto.firebaseapp.com",
-            projectId: "boleteria-piloto",
-            storageBucket: "boleteria-piloto.firebasestorage.app",
+            apiKey: API_KEY,
+            authDomain: `${PROJECT_ID}.firebaseapp.com`,
+            projectId: PROJECT_ID,
+            storageBucket: `${PROJECT_ID}.firebasestorage.app`,
             messagingSenderId: "888414257363",
             appId: "1:888414257363:web:7653fbdf87284bd6645426"
         };
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
-        const contenedor = document.getElementById('contenedor-asientos');
-        const tablaBody = document.querySelector('#tabla-reservas tbody');
-        
+        const contenedorMapa = document.getElementById('contenedor-mapa');
+        const contenedorReservas = document.getElementById('contenedor-reservas');
+        const btnSonido = document.getElementById('btn-sonido');
         const modal = document.getElementById('modalGestion');
-        let asientoActualId = null;
+        const modalInactividad = document.getElementById('modalInactividad');
+        const overlayBloqueo = document.getElementById('overlay-bloqueo');
+        
+        let asientoSeleccionado = null;
+        let esVentaManual = false; 
+        let sonidoActivado = false;
+        let primeraCarga = true;
+        let timerInactividad; // ⏳ VARIABLE PARA EL RELOJ LOCAL
 
-        // --- 🏗️ EL MAPA DE LA SALA (Debe ser igual al Index) ---
-        const mapa = [
-            "AAA_AAA", // Fila 1 (3 izq - pasillo - 3 der)
-            "AAA_AAA", 
-            "AAA_AAA", 
-            "AAA_AAA", 
-            "AAA_AAA"  
-        ];
+        const audioAlerta = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
 
-        // 1. DIBUJAR GRILLA + TABLA
-        function dibujarAdmin(datos) {
-            contenedor.innerHTML = '';
-            tablaBody.innerHTML = '';
+        // --- SONIDO Y LOGIN ---
+        window.activarSonido = function() {
+            audioAlerta.play().then(() => {
+                audioAlerta.pause(); audioAlerta.currentTime = 0;
+                sonidoActivado = true;
+                btnSonido.innerText = "🔊 SONIDO ACTIVO";
+                btnSonido.classList.add('activo');
+            }).catch(e => alert("Navegador bloqueó el sonido. Click de nuevo."));
+        }
 
-            // El sistema lee tu mapa fila por fila
+        window.verificarAcceso = function() {
+            const pass = document.getElementById('admin-pass').value;
+            if (pass === "BALLET2026") {
+                document.getElementById('pantalla-login').style.display = "none";
+                activarSonido(); 
+            } else {
+                alert("⛔ Acceso Denegado");
+            }
+        }
+
+        const mapa = ["AAA_AAA", "AAA_AAA", "AAA_AAA", "AAA_AAA", "AAA_AAA"];
+
+        // --- MONITOR TIEMPO REAL CON LIMPIEZA ---
+        onSnapshot(collection(db, "asientos_gala"), (snapshot) => {
+            const reservas = [];
+            const datosMapa = {}; 
+            const ahora = new Date().getTime(); 
+
+            // 1. LIMPIEZA AUTOMÁTICA (Backend simulado)
+            const limpiezaPromesas = [];
+            snapshot.forEach((docSnap) => {
+                const d = docSnap.data();
+                if (d.limite && ahora > d.limite) {
+                    // Si se venció, borrarlo
+                    if (d.estado === 'bloqueado' || d.estado === 'pendiente') {
+                        limpiezaPromesas.push(deleteDoc(doc(db, "asientos_gala", docSnap.id)));
+                    }
+                }
+            });
+            if (limpiezaPromesas.length > 0) Promise.all(limpiezaPromesas);
+
+            // 2. SONIDO
+            if (!primeraCarga && sonidoActivado) {
+                snapshot.docChanges().forEach((change) => {
+                    if (change.type === "added" || change.type === "modified") {
+                        const d = change.doc.data();
+                        if (d.estado === 'pendiente') audioAlerta.play();
+                    }
+                });
+            }
+
+            // 3. PROCESAR DATOS
+            snapshot.forEach((doc) => {
+                const data = doc.data();
+                datosMapa[doc.id] = data; 
+                if (data.estado === 'pendiente' || data.estado === 'ocupado') {
+                    reservas.push({ id: doc.id, ...data });
+                }
+            });
+
+            reservas.sort((a, b) => (a.estado === 'pendiente' ? -1 : 1));
+
+            dibujarMapa(datosMapa);
+            renderizarTarjetas(reservas);
+            primeraCarga = false;
+        });
+
+        // --- MAPA INTERACTIVO ---
+        function dibujarMapa(datos) {
+            contenedorMapa.innerHTML = '';
+            contenedorMapa.style.gridTemplateColumns = `repeat(${mapa[0].length}, 1fr)`;
+
             mapa.forEach((filaTexto, indexFila) => {
                 let f = indexFila + 1;
-                let c = 0; // Reiniciamos contador por fila
-
+                let c = 0;
                 for (let i = 0; i < filaTexto.length; i++) {
                     const caracter = filaTexto[i];
                     const div = document.createElement('div');
-
                     if (caracter === '_') {
-                        // ES UN PASILLO (Invisible)
                         div.style.visibility = "hidden";
-                        contenedor.appendChild(div);
                     } else {
-                        // ES UN ASIENTO
-                        c++; 
+                        c++;
                         const id = `F${f}-A${c}`; 
+                        div.classList.add('asiento-mapa');
+                        div.innerText = c;
                         
-                        div.classList.add('asiento');
-                        div.innerText = c; // Mostramos el número real
-
                         if (datos[id]) {
-                            const d = datos[id];
-                            // Colores según estado
-                            if (d.estado === 'ocupado') div.classList.add('ocupado');
+                            const estado = datos[id].estado;
+                            if (estado === 'ocupado') div.classList.add('ocupado');
                             else div.classList.add('pendiente');
                             
-                            // Click para gestionar
-                            div.onclick = () => abrirModal(id, d);
-
-                            // Agregar fila a la tabla
-                            const tr = document.createElement('tr');
-                            tr.innerHTML = `
-                                <td style="font-weight:bold; color:#f1c40f">${id}</td>
-                                <td>${d.cliente}</td>
-                                <td>${d.estado === 'ocupado' ? '🔴 Pagado' : '🟡 Pendiente'}</td>
-                            `;
-                            tablaBody.appendChild(tr);
-
+                            div.onclick = () => abrirModalGestion(id, datos[id]); 
                         } else {
                             div.classList.add('libre');
-                            div.onclick = () => alert(`El asiento ${id} está LIBRE.`);
+                            div.onclick = () => preBloquearYVender(id); 
                         }
-                        contenedor.appendChild(div);
                     }
+                    contenedorMapa.appendChild(div);
                 }
             });
         }
 
-        // 2. GESTIÓN DEL MODAL
-        window.abrirModal = (id, datos) => {
-            asientoActualId = id;
+        // --- 🔥 VENTA MANUAL SEGURA ---
+        window.preBloquearYVender = async (id) => {
+            overlayBloqueo.style.display = 'flex';
+            const tiempoLimite = new Date().getTime() + (5 * 60 * 1000); 
+
+            try {
+                await runTransaction(db, async (t) => {
+                    const ref = doc(db, "asientos_gala", id);
+                    const snap = await t.get(ref);
+                    if(snap.exists()) throw "Ocupado"; 
+                    
+                    t.set(ref, {
+                        estado: 'bloqueado',
+                        cliente: 'Venta Mostrador...',
+                        limite: tiempoLimite, 
+                        fecha: new Date().toISOString()
+                    });
+                });
+
+                asientoSeleccionado = id;
+                esVentaManual = true; 
+                abrirModalVenta(id);
+
+            } catch (e) {
+                alert("⛔ Error: Butaca ganada por otro usuario.");
+            } finally {
+                overlayBloqueo.style.display = 'none';
+            }
+        };
+
+        window.abrirModalVenta = (id) => {
+            document.getElementById('m-asiento-titulo').innerText = id;
+            document.getElementById('vista-venta-manual').style.display = 'block';
+            document.getElementById('vista-info-reserva').style.display = 'none';
             
-            // Llenar datos visuales
-            document.getElementById('m-asiento').innerText = id;
-            document.getElementById('m-cliente').innerText = datos.cliente;
+            document.getElementById('inp-man-nombre').value = "";
+            document.getElementById('inp-man-dni').value = "";
+            document.getElementById('inp-man-tel').value = "";
+            
+            modal.style.display = 'flex';
+
+            // --- ⏳ TIMER INACTIVIDAD (5 MIN) ---
+            clearTimeout(timerInactividad);
+            timerInactividad = setTimeout(() => {
+                modal.style.display = 'none';
+                modalInactividad.style.display = 'flex'; // Mostrar cartel de tiempo agotado
+            }, 5 * 60 * 1000);
+        };
+
+        window.abrirModalGestion = (id, datos) => {
+            asientoSeleccionado = id;
+            esVentaManual = false; 
+            document.getElementById('m-asiento-titulo').innerText = id;
+
+            document.getElementById('vista-venta-manual').style.display = 'none';
+            document.getElementById('vista-info-reserva').style.display = 'block';
+
+            document.getElementById('m-estado').innerText = datos.estado.toUpperCase();
+            document.getElementById('m-estado').style.color = datos.estado === 'ocupado' ? '#e74c3c' : '#f1c40f';
+            document.getElementById('m-cliente').innerText = datos.cliente || 'Anónimo';
             document.getElementById('m-dni').innerText = datos.dni || '-';
             
-            const tel = datos.telefono || datos.tel || ''; 
+            const tel = datos.telefono || '';
             document.getElementById('m-tel').innerText = tel;
-            // Enlace directo a WhatsApp
             document.getElementById('m-tel-link').href = `https://wa.me/${tel.replace(/\D/g,'')}`;
-            
-            const tipoPago = datos.tipo_pago === 'mp' ? '💳 Mercado Pago' : '💵 Efectivo';
-            document.getElementById('m-pago').innerText = tipoPago;
 
-            // Ocultar botón pagar si ya pagó
-            const btnPagar = document.getElementById('btn-accion-pagar');
-            if(datos.estado === 'ocupado') {
-                btnPagar.style.display = 'none'; 
-            } else {
-                btnPagar.style.display = 'block'; 
-            }
+            const btnConf = document.getElementById('btn-m-confirmar');
+            btnConf.style.display = datos.estado === 'ocupado' ? 'none' : 'block';
 
             modal.style.display = 'flex';
         };
 
-        window.cerrarModal = () => {
-            modal.style.display = 'none';
-            asientoActualId = null;
-        };
-
-        // 3. ACCIONES FIREBASE
-        window.confirmarPago = async () => {
-            if(!asientoActualId) return;
-            await setDoc(doc(db, "asientos_gala", asientoActualId), { estado: 'ocupado' }, { merge: true });
-            cerrarModal();
-        };
-
-        window.eliminarReserva = async () => {
-            if(!asientoActualId) return;
-            if(confirm("¿Seguro que quieres liberar este asiento?")) {
-                await deleteDoc(doc(db, "asientos_gala", asientoActualId));
-                cerrarModal();
+        window.cerrarModal = async () => {
+            clearTimeout(timerInactividad); // Detener el timer si cerramos voluntariamente
+            if (esVentaManual && asientoSeleccionado) {
+                await deleteDoc(doc(db, "asientos_gala", asientoSeleccionado));
             }
+            modal.style.display = 'none';
+            asientoSeleccionado = null;
+            esVentaManual = false;
+        };
+
+        window.guardarVentaManual = async () => {
+            const nombre = document.getElementById('inp-man-nombre').value.toUpperCase();
+            const dni = document.getElementById('inp-man-dni').value;
+            const tel = document.getElementById('inp-man-tel').value || "Mostrador";
+
+            if(!nombre || !dni) return alert("Completa Nombre y DNI");
+
+            try {
+                await setDoc(doc(db, "asientos_gala", asientoSeleccionado), {
+                    estado: "ocupado",
+                    cliente: nombre,
+                    dni: dni,
+                    telefono: tel,
+                    tipo_pago: "efectivo",
+                    fecha: new Date().toISOString()
+                });
+                
+                clearTimeout(timerInactividad); // Venta exitosa, detenemos timer
+                esVentaManual = false; 
+                modal.style.display = 'none';
+                asientoSeleccionado = null;
+                alert(`✅ Venta registrada correctamente.`);
+                
+            } catch (e) { alert("Error al guardar: " + e.message); }
+        };
+
+        window.confirmarDesdeModal = () => confirmarReserva(asientoSeleccionado);
+        window.liberarDesdeModal = () => eliminarReserva(asientoSeleccionado);
+
+        // --- RENDER TARJETAS ---
+        function renderizarTarjetas(lista) {
+            contenedorReservas.innerHTML = '';
+            if (lista.length === 0) {
+                contenedorReservas.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: #444;">Sin actividad online.</p>';
+                return;
+            }
+            lista.forEach(r => {
+                const esPendiente = r.estado === 'pendiente';
+                const html = `
+                    <div class="card ${r.estado}">
+                        <div class="card-header">
+                            <span class="butaca-id">${r.id}</span>
+                            ${esPendiente ? `<span class="timer" id="timer-${r.id}">--:--</span>` : '<span style="color:#2ecc71; font-weight:bold;">CONFIRMADO</span>'}
+                        </div>
+                        <div class="info-row"><b>${r.cliente}</b></div>
+                        <div class="info-row">DNI: ${r.dni}</div>
+                        <div class="acciones">
+                            ${esPendiente ? `
+                                <button class="btn-card btn-confirmar" onclick="confirmarReserva('${r.id}')">✅</button>
+                                <button class="btn-card btn-liberar" onclick="eliminarReserva('${r.id}')">❌</button>
+                            ` : `<button class="btn-card btn-liberar" style="width:100%" onclick="eliminarReserva('${r.id}')">LIBERAR</button>`}
+                        </div>
+                    </div>
+                `;
+                const div = document.createElement('div');
+                div.innerHTML = html;
+                contenedorReservas.appendChild(div);
+                if (esPendiente && r.limite) actualizarReloj(r.id, r.limite);
+            });
+        }
+
+        function actualizarReloj(id, limite) {
+            const el = document.getElementById(`timer-${id}`);
+            if (!el) return;
+            const tick = () => {
+                const res = limite - new Date().getTime();
+                if (res < 0) { el.innerText = "EXPIRADO"; el.style.color = "red"; }
+                else {
+                    const m = Math.floor((res % 3600000) / 60000);
+                    const s = Math.floor((res % 60000) / 1000);
+                    el.innerText = `${m}:${s < 10 ? '0'+s : s}`;
+                    requestAnimationFrame(tick);
+                }
+            };
+            tick();
+        }
+
+        window.confirmarReserva = async (id) => {
+            if(!confirm(`¿Confirmar ${id}?`)) return;
+            await updateDoc(doc(db, "asientos_gala", id), { estado: 'ocupado', limite: null });
+            if(modal.style.display === 'flex') cerrarModal();
+        };
+
+        window.eliminarReserva = async (id) => {
+            if(!confirm(`¿Liberar ${id}?`)) return;
+            await deleteDoc(doc(db, "asientos_gala", id));
+            if(modal.style.display === 'flex') cerrarModal();
         };
 
         window.liberarTodasLasButacas = async () => {
-            const respuesta = confirm("⚠️ ¡PELIGRO! ¿Estás seguro de borrar TODAS las ventas?");
-            if (respuesta) {
-                const pass = prompt("Escribe BORRAR para confirmar:");
-                if(pass === "BORRAR"){
-                    const q = await getDocs(collection(db, "asientos_gala"));
-                    q.forEach((d) => deleteDoc(doc(db, "asientos_gala", d.id)));
-                    alert("Sala reiniciada.");
-                }
+            if(!confirm("⚠️ ¿RESETEAR TODA LA SALA?")) return;
+            if(prompt("Escribe BORRAR:") === "BORRAR"){
+                const q = await getDocs(collection(db, "asientos_gala"));
+                q.forEach(d => deleteDoc(doc(db, "asientos_gala", d.id)));
+                alert("Sala limpia.");
             }
         };
-
-        // ESCUCHAR CAMBIOS
-        onSnapshot(collection(db, "asientos_gala"), (snap) => {
-            const d = {};
-            snap.forEach(doc => d[doc.id] = doc.data());
-            dibujarAdmin(d);
-        });
     </script>
 </body>
 </html>
