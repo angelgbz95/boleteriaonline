@@ -30,27 +30,30 @@
             border: none; border-radius: 5px; cursor: pointer; font-size: 16px; width: 100%;
         }
 
-        /* --- CONTROLES SUPERIORES --- */
-        .panel-controles {
-            display: flex; justify-content: center; gap: 15px; margin-bottom: 30px; flex-wrap: wrap;
+        /* --- BOTONES DE GESTIÓN (NUEVO ESTILO) --- */
+        .panel-gestion {
+            display: flex; justify-content: center; gap: 20px; margin: 30px 0;
         }
-        #btn-sonido {
-            background: #333; color: #888; border: 1px solid #555;
-            padding: 10px 20px; border-radius: 50px; cursor: pointer; transition: all 0.3s;
-        }
-        #btn-sonido.activo { background: #2ecc71; color: black; border-color: #2ecc71; font-weight: bold; }
         
         .btn-reset {
-            background-color: #c0392b; color: white; padding: 10px 20px;
+            background-color: #c0392b; color: white; padding: 12px 25px;
             border: none; border-radius: 50px; cursor: pointer; font-weight: bold;
-            border: 1px solid #e74c3c;
+            border: 1px solid #e74c3c; transition: transform 0.2s;
         }
+        .btn-reset:hover { transform: scale(1.05); background-color: #e74c3c; }
+
+        .btn-logout {
+            background-color: #555; color: white; padding: 12px 25px;
+            border: none; border-radius: 50px; cursor: pointer; font-weight: bold;
+            border: 1px solid #777; transition: transform 0.2s;
+        }
+        .btn-logout:hover { transform: scale(1.05); background-color: #777; }
 
         /* --- MAPA INTERACTIVO --- */
         .sala {
             display: grid;
             grid-template-columns: repeat(7, 1fr); 
-            gap: 5px; max-width: 400px; margin: 0 auto 40px auto;
+            gap: 5px; max-width: 400px; margin: 0 auto;
             padding: 15px; background: #111;
             border-radius: 15px; border: 1px solid #333;
         }
@@ -128,9 +131,78 @@
             background: rgba(0,0,0,0.5); z-index: 2000; color: white;
             justify-content: center; align-items: center; font-weight: bold;
         }
+
+        /* --- MODAL ERROR ELEGANTE --- */
+        .modal-error .modal-card {
+            border-color: #e74c3c; /* Rojo */
+            text-align: center;
+        }
+        .btn-error {
+            background-color: #e74c3c; color: white; font-weight: bold; margin-top: 20px;
+        }
+
+        /* --- MODAL ÉXITO ELEGANTE --- */
+        .modal-success .modal-card {
+            border-color: #2ecc71; /* Verde */
+            text-align: center;
+        }
+        .btn-success {
+            background-color: #2ecc71; color: black; font-weight: bold; margin-top: 20px; width: 100%; padding: 10px; border: none; border-radius: 5px; cursor: pointer;
+        }
     </style>
 </head>
 <body>
+
+    <div id="modalError" class="modal-fondo modal-error" style="z-index: 4000;">
+        <div class="modal-card">
+            <h2 style="color: #e74c3c; margin-bottom: 10px;">⚠️ Atención</h2>
+            <p id="mensajeError" style="color: #ccc; font-size: 16px;">---</p>
+            <button class="btn-cerrar btn-error" onclick="document.getElementById('modalError').style.display = 'none';">ENTENDIDO</button>
+        </div>
+    </div>
+
+    <div id="modalSuccess" class="modal-fondo modal-success" style="z-index: 4000;">
+        <div class="modal-card">
+            <h2 style="color: #2ecc71; margin-bottom: 10px;">✅ ¡Excelente!</h2>
+            <p id="mensajeSuccess" style="color: #ccc; font-size: 16px;">---</p>
+            <button class="btn-success" onclick="document.getElementById('modalSuccess').style.display = 'none';">ACEPTAR</button>
+        </div>
+    </div>
+
+    <div id="modalLogout" class="modal-fondo" style="z-index: 5000;">
+        <div class="modal-card" style="text-align: center; border-color: #777;">
+            <h2 style="color: #ccc;">🚪 Cerrar Boletería</h2>
+            <p style="color: #888; font-size: 16px; margin-bottom: 20px;">¿Estás seguro que quieres salir del panel?</p>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn-cerrar" onclick="document.getElementById('modalLogout').style.display = 'none'" style="margin-top:0;">CANCELAR</button>
+                <button class="btn-manual" onclick="confirmarLogout()" style="background: #e74c3c; color: white; margin-top:0;">SÍ, CERRAR</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalAction" class="modal-fondo" style="z-index: 5000;">
+        <div class="modal-card" style="text-align: center;">
+            <h2 id="tit-action">---</h2>
+            <p id="txt-action-msg" style="color: #ccc; margin-bottom: 20px;">---</p>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button class="btn-cerrar" onclick="cerrarModalAction()" style="margin-top:0; width:auto; padding: 10px 20px;">CANCELAR</button>
+                <button id="btn-action-ok" class="btn-manual" onclick="ejecutarAccionReal()" style="margin-top:0; width:auto; padding: 10px 20px;">CONFIRMAR</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalReset" class="modal-fondo" style="z-index: 6000;">
+        <div class="modal-card" style="border-color: #e74c3c; text-align: center;">
+            <h2 style="color: #e74c3c;">☢️ ZONA DE PELIGRO</h2>
+            <p style="color: #ccc;">Estás a punto de VACIAR TODA la sala (reservas y ventas).</p>
+            <p style="color: #888; font-size: 14px;">Escribe <b>BORRAR</b> para confirmar:</p>
+            <input type="text" id="inp-borrar-confirm" class="input-manual" style="text-align: center; text-transform: uppercase;">
+            <div style="display: flex; gap: 10px; justify-content: center; margin-top: 15px;">
+                <button class="btn-cerrar" onclick="document.getElementById('modalReset').style.display='none'" style="margin-top:0; width:auto;">CANCELAR</button>
+                <button class="btn-manual" onclick="ejecutarResetReal()" style="background: #e74c3c; color: white; margin-top:0; width:auto;">VACIAR SALA</button>
+            </div>
+        </div>
+    </div>
 
     <div id="overlay-bloqueo">⏳ Bloqueando butaca...</div>
 
@@ -156,12 +228,12 @@
     <h1>👮‍♂️ CENTRO DE COMANDO</h1>
     <div class="subtitulo">Haz click en el mapa para Vender o Gestionar</div>
     
-    <div class="panel-controles">
-        <button id="btn-sonido" onclick="activarSonido()">🔔 ACTIVAR ALERTAS DE SONIDO</button>
-        <button class="btn-reset" onclick="liberarTodasLasButacas()">☢️ RESETEAR SALA</button>
-    </div>
-
     <div id="contenedor-mapa" class="sala"></div>
+
+    <div class="panel-gestion">
+        <button class="btn-reset" onclick="liberarTodasLasButacas()">☢️ VACIAR SALA</button>
+        <button class="btn-logout" onclick="abrirLogout()">🚪 CERRAR BOLETERIA</button>
+    </div>
 
     <h3>📡 Radar de Actividad Online</h3>
     <div id="contenedor-reservas" class="grid-reservas">
@@ -176,16 +248,16 @@
                 <p style="color:#2ecc71; text-align:center; font-weight:bold;">🟢 DISPONIBLE - VENTA MOSTRADOR</p>
                 <p style="color:#aaa; font-size:12px; text-align:center;">Se liberará en 5 min si no guardas.</p>
                 
-                <label class="label-manual">Nombre del Padre/Alumno:</label>
+                <label class="label-manual">Nombre Completo:</label>
                 <input type="text" id="inp-man-nombre" class="input-manual" placeholder="Ej: MARIA GOMEZ">
                 
                 <label class="label-manual">DNI:</label>
                 <input type="tel" id="inp-man-dni" class="input-manual" placeholder="Solo números">
 
-                <label class="label-manual">Teléfono (Opcional):</label>
+                <label class="label-manual">Teléfono:</label>
                 <input type="tel" id="inp-man-tel" class="input-manual" placeholder="Para contacto">
 
-                <button class="btn-manual" onclick="guardarVentaManual()">💾 CONFIRMAR VENTA (EFECTIVO)</button>
+                <button class="btn-manual" onclick="guardarVentaManual()">💾 CONFIRMAR VENTA</button>
             </div>
 
             <div id="vista-info-reserva" style="display:none;">
@@ -199,18 +271,18 @@
                 </div>
                 
                 <div class="acciones">
-                    <button id="btn-m-confirmar" class="btn-card btn-confirmar" onclick="confirmarDesdeModal()">✅ Confirmar</button>
-                    <button class="btn-card btn-liberar" onclick="liberarDesdeModal()">🗑️ Liberar</button>
+                    <button id="btn-m-confirmar" class="btn-card btn-confirmar" onclick="confirmarReserva(asientoSeleccionado)">✅ Confirmar</button>
+                    <button class="btn-card btn-liberar" onclick="eliminarReserva(asientoSeleccionado)">🗑️ Liberar</button>
                 </div>
             </div>
 
-            <button class="btn-cerrar" onclick="cerrarModal()">Cerrar / Cancelar</button>
+            <button class="btn-cerrar" onclick="cerrarModal()">Cancelar</button>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, getDocs, runTransaction } 
+        import { getFirestore, collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, getDocs, runTransaction, writeBatch } 
         from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const API_KEY = "AIzaSyDFg-4F6_bVHP7xYAOlUVwFiTTUoZ-ltVc";
@@ -229,37 +301,67 @@
         const db = getFirestore(app);
         const contenedorMapa = document.getElementById('contenedor-mapa');
         const contenedorReservas = document.getElementById('contenedor-reservas');
-        const btnSonido = document.getElementById('btn-sonido');
         const modal = document.getElementById('modalGestion');
         const modalInactividad = document.getElementById('modalInactividad');
+        const modalError = document.getElementById('modalError'); 
+        const modalSuccess = document.getElementById('modalSuccess');
+        const mensajeError = document.getElementById('mensajeError');
         const overlayBloqueo = document.getElementById('overlay-bloqueo');
+        
+        // MODALES NUEVOS
+        const modalAction = document.getElementById('modalAction');
+        const modalReset = document.getElementById('modalReset');
+        const modalLogout = document.getElementById('modalLogout');
         
         let asientoSeleccionado = null;
         let esVentaManual = false; 
         let sonidoActivado = false;
         let primeraCarga = true;
-        let timerInactividad; // ⏳ VARIABLE PARA EL RELOJ LOCAL
+        let timerInactividad; 
+
+        // VARIABLES PARA ACCIONES DINÁMICAS
+        let accionPendiente = ""; 
+        let idPendiente = "";
 
         const audioAlerta = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
 
-        // --- SONIDO Y LOGIN ---
+        // --- CHECKEO DE SESIÓN AL INICIO Y ACTIVACIÓN DE SONIDO ---
+        if (sessionStorage.getItem('admin_access') === 'true') {
+            document.getElementById('pantalla-login').style.display = "none";
+            // Intentar activar sonido si ya está logueado (navegadores modernos requieren click)
+            document.body.addEventListener('click', () => {
+                if(!sonidoActivado) activarSonido();
+            }, { once: true });
+        }
+
+        // --- ACTIVACIÓN DE SONIDO (SIN BOTÓN) ---
         window.activarSonido = function() {
             audioAlerta.play().then(() => {
                 audioAlerta.pause(); audioAlerta.currentTime = 0;
                 sonidoActivado = true;
-                btnSonido.innerText = "🔊 SONIDO ACTIVO";
-                btnSonido.classList.add('activo');
-            }).catch(e => alert("Navegador bloqueó el sonido. Click de nuevo."));
+                // Ya no hay botón para cambiar estilo
+            }).catch(e => console.log("Esperando interacción para audio"));
         }
 
         window.verificarAcceso = function() {
             const pass = document.getElementById('admin-pass').value;
             if (pass === "BALLET2026") {
+                sessionStorage.setItem('admin_access', 'true');
                 document.getElementById('pantalla-login').style.display = "none";
-                activarSonido(); 
+                activarSonido(); // Activar audio al entrar
             } else {
                 alert("⛔ Acceso Denegado");
             }
+        }
+
+        // --- LOGOUT ---
+        window.abrirLogout = function() {
+            modalLogout.style.display = 'flex';
+        }
+
+        window.confirmarLogout = function() {
+            sessionStorage.removeItem('admin_access');
+            window.location.reload();
         }
 
         const mapa = ["AAA_AAA", "AAA_AAA", "AAA_AAA", "AAA_AAA", "AAA_AAA"];
@@ -270,7 +372,7 @@
             const datosMapa = {}; 
             const ahora = new Date().getTime(); 
 
-            // 1. LIMPIEZA AUTOMÁTICA (Backend simulado)
+            // 1. LIMPIEZA AUTOMÁTICA
             const limpiezaPromesas = [];
             snapshot.forEach((docSnap) => {
                 const d = docSnap.data();
@@ -368,7 +470,8 @@
                 abrirModalVenta(id);
 
             } catch (e) {
-                alert("⛔ Error: Butaca ganada por otro usuario.");
+                mensajeError.innerText = "⛔ Lo siento, un cliente online acaba de ganar esa butaca.";
+                modalError.style.display = 'flex';
             } finally {
                 overlayBloqueo.style.display = 'none';
             }
@@ -389,7 +492,7 @@
             clearTimeout(timerInactividad);
             timerInactividad = setTimeout(() => {
                 modal.style.display = 'none';
-                modalInactividad.style.display = 'flex'; // Mostrar cartel de tiempo agotado
+                modalInactividad.style.display = 'flex'; 
             }, 5 * 60 * 1000);
         };
 
@@ -417,7 +520,7 @@
         };
 
         window.cerrarModal = async () => {
-            clearTimeout(timerInactividad); // Detener el timer si cerramos voluntariamente
+            clearTimeout(timerInactividad); 
             if (esVentaManual && asientoSeleccionado) {
                 await deleteDoc(doc(db, "asientos_gala", asientoSeleccionado));
             }
@@ -431,7 +534,11 @@
             const dni = document.getElementById('inp-man-dni').value;
             const tel = document.getElementById('inp-man-tel').value || "Mostrador";
 
-            if(!nombre || !dni) return alert("Completa Nombre y DNI");
+            if(!nombre || !dni) {
+                mensajeError.innerText = "⚠️ Por favor, completa los datos.";
+                modalError.style.display = 'flex';
+                return;
+            }
 
             try {
                 await setDoc(doc(db, "asientos_gala", asientoSeleccionado), {
@@ -443,19 +550,96 @@
                     fecha: new Date().toISOString()
                 });
                 
-                clearTimeout(timerInactividad); // Venta exitosa, detenemos timer
+                clearTimeout(timerInactividad); 
                 esVentaManual = false; 
                 modal.style.display = 'none';
                 asientoSeleccionado = null;
-                alert(`✅ Venta registrada correctamente.`);
                 
-            } catch (e) { alert("Error al guardar: " + e.message); }
+                document.getElementById('mensajeSuccess').innerText = "Venta registrada correctamente.";
+                modalSuccess.style.display = 'flex';
+                
+            } catch (e) { 
+                mensajeError.innerText = "Error al guardar: " + e.message;
+                modalError.style.display = 'flex';
+            }
         };
 
-        window.confirmarDesdeModal = () => confirmarReserva(asientoSeleccionado);
-        window.liberarDesdeModal = () => eliminarReserva(asientoSeleccionado);
+        // --- SISTEMA DE MODALES DE CONFIRMACIÓN ---
 
-        // --- RENDER TARJETAS ---
+        window.confirmarReserva = (id) => {
+            idPendiente = id;
+            accionPendiente = 'confirmar';
+            document.getElementById('tit-action').innerText = "✅ CONFIRMAR VENTA";
+            document.getElementById('tit-action').style.color = "#2ecc71";
+            document.getElementById('txt-action-msg').innerText = `¿Confirmar el pago de la butaca ${id}?`;
+            document.getElementById('btn-action-ok').innerText = "SÍ, CONFIRMAR";
+            document.getElementById('btn-action-ok').style.backgroundColor = "#2ecc71";
+            modalAction.style.display = 'flex';
+        };
+
+        window.eliminarReserva = (id) => {
+            idPendiente = id;
+            accionPendiente = 'liberar';
+            document.getElementById('tit-action').innerText = "🗑️ LIBERAR BUTACA";
+            document.getElementById('tit-action').style.color = "#e74c3c";
+            document.getElementById('txt-action-msg').innerText = `¿Liberar la butaca ${id} y borrar la reserva?`;
+            document.getElementById('btn-action-ok').innerText = "SÍ, LIBERAR";
+            document.getElementById('btn-action-ok').style.backgroundColor = "#e74c3c";
+            modalAction.style.display = 'flex';
+        };
+
+        window.cerrarModalAction = () => {
+            modalAction.style.display = 'none';
+            idPendiente = "";
+            accionPendiente = "";
+        };
+
+        window.ejecutarAccionReal = async () => {
+            if (!idPendiente) return;
+            
+            try {
+                if (accionPendiente === 'confirmar') {
+                    await updateDoc(doc(db, "asientos_gala", idPendiente), { estado: 'ocupado', limite: null });
+                } else if (accionPendiente === 'liberar') {
+                    await deleteDoc(doc(db, "asientos_gala", idPendiente));
+                }
+            } catch (e) {
+                mensajeError.innerText = "Error: " + e.message;
+                modalError.style.display = 'flex';
+            }
+            
+            cerrarModalAction();
+            if(modal.style.display === 'flex') cerrarModal(); 
+        };
+
+        window.liberarTodasLasButacas = () => {
+            document.getElementById('inp-borrar-confirm').value = "";
+            modalReset.style.display = 'flex';
+        };
+
+        window.ejecutarResetReal = async () => {
+            const confirmacion = document.getElementById('inp-borrar-confirm').value.toUpperCase();
+            if (confirmacion === "BORRAR") {
+                try {
+                    const q = await getDocs(collection(db, "asientos_gala"));
+                    const batch = writeBatch(db);
+                    q.forEach((d) => batch.delete(d.ref));
+                    await batch.commit();
+                    
+                    document.getElementById('mensajeSuccess').innerText = "Sala reiniciada correctamente.";
+                    modalSuccess.style.display = 'flex';
+                    modalReset.style.display = 'none';
+                } catch (e) {
+                    mensajeError.innerText = "Error al borrar: " + e.message;
+                    modalError.style.display = 'flex';
+                }
+            } else {
+                mensajeError.innerText = "⚠️ Debes escribir BORRAR para confirmar.";
+                modalError.style.display = 'flex';
+            }
+        };
+
+        // --- RENDER TARJETAS (Actualizado con Teléfono) ---
         function renderizarTarjetas(lista) {
             contenedorReservas.innerHTML = '';
             if (lista.length === 0) {
@@ -468,10 +652,12 @@
                     <div class="card ${r.estado}">
                         <div class="card-header">
                             <span class="butaca-id">${r.id}</span>
-                            ${esPendiente ? `<span class="timer" id="timer-${r.id}">--:--</span>` : '<span style="color:#2ecc71; font-weight:bold;">CONFIRMADO</span>'}
+                            ${esPendiente ? 
+                            `<span class="timer" id="timer-${r.id}">--:--</span>` : '<span style="color:#2ecc71; font-weight:bold;">CONFIRMADO</span>'}
                         </div>
                         <div class="info-row"><b>${r.cliente}</b></div>
                         <div class="info-row">DNI: ${r.dni}</div>
+                        <div class="info-row">Tel: ${r.telefono || '---'}</div>
                         <div class="acciones">
                             ${esPendiente ? `
                                 <button class="btn-card btn-confirmar" onclick="confirmarReserva('${r.id}')">✅</button>
@@ -503,26 +689,14 @@
             tick();
         }
 
-        window.confirmarReserva = async (id) => {
-            if(!confirm(`¿Confirmar ${id}?`)) return;
-            await updateDoc(doc(db, "asientos_gala", id), { estado: 'ocupado', limite: null });
-            if(modal.style.display === 'flex') cerrarModal();
-        };
-
-        window.eliminarReserva = async (id) => {
-            if(!confirm(`¿Liberar ${id}?`)) return;
-            await deleteDoc(doc(db, "asientos_gala", id));
-            if(modal.style.display === 'flex') cerrarModal();
-        };
-
-        window.liberarTodasLasButacas = async () => {
-            if(!confirm("⚠️ ¿RESETEAR TODA LA SALA?")) return;
-            if(prompt("Escribe BORRAR:") === "BORRAR"){
-                const q = await getDocs(collection(db, "asientos_gala"));
-                q.forEach(d => deleteDoc(doc(db, "asientos_gala", d.id)));
-                alert("Sala limpia.");
+        // --- 🛡️ PROTOCOLO DE EMERGENCIA ---
+        window.addEventListener('beforeunload', () => {
+            if (esVentaManual && asientoSeleccionado) {
+                const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/asientos_gala/${asientoSeleccionado}?key=${API_KEY}`;
+                fetch(url, { method: 'DELETE', keepalive: true });
             }
-        };
+        });
+
     </script>
 </body>
 </html>
