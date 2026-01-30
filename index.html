@@ -164,7 +164,7 @@
     <div id="modalFormulario" class="modal-fondo">
         <div class="modal-contenido">
             <h2>Completar Datos</h2>
-            <p style="color:#aaa; font-size:14px; margin-bottom:15px;">Tus butacas están reservadas por 5 minutos.</p>
+            <p style="color:#aaa; font-size:14px; margin-bottom:15px;">Tiempo restante: <span id="cronometro-form" class="reloj-maestro" data-limite="0" style="color:#f1c40f; font-weight:bold">05:00</span></p>
             
             <label>Nombre Completo:</label>
             <input type="text" id="inp-nombre" placeholder="Ej: JUAN PÉREZ">
@@ -206,7 +206,9 @@
                 <p style="font-size:16px">Butacas reservadas: <br><b id="t-butacas-final" style="color:#d4af37; font-size:18px">--</b></p>
                 <span id="txt-total-final" class="precio-total">$0</span>
                 <hr style="border-color:#444">
-                <p>⚠️ Tiempo límite: <br><span id="cronometro" class="destacado">--:--</span></p>
+                
+                <p>⚠️ Tiempo límite: <br><span id="cronometro-pago" class="destacado reloj-maestro" data-limite="0">--:--</span></p>
+                
                 <p id="mensaje-instrucciones" style="color:#aaa; font-size:13px"></p>
                 <a id="btn-link-pago" href="#" class="btn-mercado" target="_blank">PAGAR AHORA</a>
                 <a href="https://wa.me/5493764374689" target="_blank" class="btn-whatsapp">📲 Avisar pago por WhatsApp</a>
@@ -273,7 +275,7 @@
         const PRECIO_GRAL = 5000;    // Resto de filas
 
         const LINKS_MP = {
-            5000:  "https://mpago.la/2iQ4B57",
+           5000:  "https://mpago.la/2iQ4B57",
             10000: "https://mpago.la/2niAJr2",
             15000: "https://mpago.la/24oypiy",
             20000: "https://mpago.la/1VGP9Vx",
@@ -292,7 +294,7 @@
         
         const modalForm = document.getElementById('modalFormulario');
         const modalPago = document.getElementById('modalPago');
-        const modalExito = document.getElementById('modalExito'); // Nuevo
+        const modalExito = document.getElementById('modalExito');
         const modalConfirmacion = document.getElementById('modalConfirmacion');
         const modalAlerta = document.getElementById('modalAlerta'); 
         const txtAlerta = document.getElementById('txt-alerta'); 
@@ -304,9 +306,12 @@
         const txtTotalFinal = document.getElementById('txt-total-final');
         const msjInstrucciones = document.getElementById('mensaje-instrucciones');
         
+        // ELEMENTOS RELOJES MAESTROS
+        const cronometroForm = document.getElementById('cronometro-form'); 
+        const cronometroPago = document.getElementById('cronometro-pago'); 
+        
         window.seleccionados = []; 
         window.reservadosDB = [];  
-        let timeoutFormulario; 
 
         // --- MAPA ---
         const mapa = [
@@ -319,7 +324,7 @@
 
         function dibujarAsientos(datos) {
             limpiarReservasVencidas(datos);
-            checkearConfirmacionAdmin(datos); // <-- AQUÍ CHEQUEAMOS SI EL ADMIN CONFIRMÓ
+            checkearConfirmacionAdmin(datos);
 
             contenedor.innerHTML = '';
             contenedor.style.gridTemplateColumns = `repeat(${mapa[0].length}, 1fr)`;
@@ -347,6 +352,18 @@
                         div.id = `asiento-${id}`;
 
                         if (datos[id]) {
+                            // GUARDAR LÍMITE PARA EL RELOJ MAESTRO SI ES TUYO
+                            if (window.reservadosDB.includes(id) && datos[id].limite) {
+                                // Decidimos qué reloj actualizar según el estado
+                                if (datos[id].estado === 'bloqueado') {
+                                    cronometroForm.dataset.limite = datos[id].limite;
+                                    cronometroPago.dataset.limite = 0; // Limpiar el otro
+                                } else if (datos[id].estado === 'pendiente') {
+                                    cronometroPago.dataset.limite = datos[id].limite;
+                                    cronometroForm.dataset.limite = 0; // Limpiar el otro
+                                }
+                            }
+
                             if (datos[id].estado === 'ocupado') {
                                 div.classList.add('ocupado');
                             } else {
@@ -356,8 +373,8 @@
                                     div.classList.add('pendiente');
                                 }
                             }
-                            if(window.seleccionados.includes(id) && !window.reservadosDB.includes(id)) {
-                                toggleSeleccion(id);
+                           if(window.seleccionados.includes(id) && !window.reservadosDB.includes(id)) {
+                               toggleSeleccion(id);
                             }
                         } else {
                             div.onclick = () => toggleSeleccion(id);
@@ -369,21 +386,51 @@
             });
         }
 
+        // --- ⏰ RELOJ MAESTRO SINCRONIZADO (UNIFICADO) ---
+        // Se ejecuta cada 500ms y busca TODOS los elementos con clase 'reloj-maestro'
+        setInterval(() => {
+            const timers = document.querySelectorAll('.reloj-maestro'); 
+            const ahora = new Date().getTime();
+
+            timers.forEach(el => {
+                const limite = parseInt(el.dataset.limite || 0);
+                if (!limite) return; // Si no hay límite asignado, saltar
+
+                const res = limite - ahora;
+
+                if (res < 0) {
+                    // TIEMPO AGOTADO
+                    el.innerText = "0:00";
+                    // Ejecutar limpieza si el modal correspondiente está visible
+                    if (modalForm.style.display === 'flex' || modalPago.style.display === 'flex') {
+                         borrarLoteCompleto().then(() => {
+                            modalForm.style.display = 'none';
+                            modalPago.style.display = 'none';
+                            mostrarAlerta("⚠️ Tiempo agotado. Se liberaron los asientos.", 'reload');
+                         });
+                    }
+                } else {
+                    const m = Math.floor((res % 3600000) / 60000);
+                    const s = Math.floor((res % 60000) / 1000);
+                    el.innerText = `${m}:${s < 10 ? '0'+s : s}`;
+                }
+            });
+        }, 500);
+
         // --- 🕵️‍♂️ DETECTOR DE ÉXITO EN VIVO ---
         function checkearConfirmacionAdmin(datos) {
-            // Si el usuario está esperando (tiene reservas en DB)
             if (window.reservadosDB.length > 0) {
-                // Verificamos si TODAS sus butacas ahora dicen 'ocupado' (Confirmado por Admin)
                 const todasConfirmadas = window.reservadosDB.every(id => datos[id] && datos[id].estado === 'ocupado');
                 
                 if (todasConfirmadas) {
-                    // ¡ÉXITO! El admin confirmó.
-                    clearInterval(intervalo); // Detener reloj
-                    modalPago.style.display = 'none'; // Cerrar espera
-                    modalForm.style.display = 'none';
-                    modalExito.style.display = 'flex'; // Mostrar éxito
+                    // Limpiar relojes visuales
+                    cronometroForm.dataset.limite = 0;
+                    cronometroPago.dataset.limite = 0;
                     
-                    // Limpiamos para que no vuelva a saltar
+                    modalPago.style.display = 'none'; 
+                    modalForm.style.display = 'none';
+                    modalExito.style.display = 'flex'; 
+                    
                     window.reservadosDB = [];
                 }
             }
@@ -433,7 +480,7 @@
                 btnAlerta.onclick = () => window.location.reload();
             } else {
                 btnAlerta.innerText = "ENTENDIDO";
-                btnAlerta.onclick = () => cerrarAlerta();
+                 btnAlerta.onclick = () => cerrarAlerta();
             }
             modalAlerta.style.display = "flex";
         }
@@ -463,6 +510,7 @@
                         }
                     }
 
+                    // 5 MINUTOS PARA LLENAR DATOS (FORMULARIO)
                     const tiempoFormulario = new Date().getTime() + (5 * 60 * 1000); 
                     for (let id of asientosParaBloquear) {
                         const docRef = doc(db, "asientos_gala", id);
@@ -506,17 +554,10 @@
             document.getElementById('inp-email').value = "";
             
             modalForm.style.display = "flex";
-
-            clearTimeout(timeoutFormulario);
-            timeoutFormulario = setTimeout(async () => {
-                await borrarLoteCompleto();
-                modalForm.style.display = "none";
-                mostrarAlerta("⏳ El tiempo de 5 minutos para completar los datos ha finalizado.\n\nPor favor, vuelve a intentarlo.", 'reload');
-            }, 5 * 60 * 1000); 
+            // Nota: Ya no seteamos timeout aquí, lo maneja el Reloj Maestro
         }
 
         window.cancelarFormularioYLiberar = async function() {
-            clearTimeout(timeoutFormulario); 
             await borrarLoteCompleto(); 
             modalForm.style.display = "none";
             window.location.reload(); 
@@ -553,7 +594,9 @@
                 });
 
                 await batch.commit();
-                clearTimeout(timeoutFormulario);
+                
+                // Limpiamos reloj de form, pasamos al de pago
+                cronometroForm.dataset.limite = 0; 
 
                 tButacasFinal.innerText = window.reservadosDB.join(", ");
                 
@@ -577,7 +620,8 @@
                     msjInstrucciones.innerText = "Paga en efectivo dentro de las 24hs.";
                 }
 
-                iniciarCuentaRegresiva(minutos); 
+                // Seteamos el data-limite en el HTML para el Reloj Maestro del PAGO
+                cronometroPago.dataset.limite = tiempoLimite;
                 modalPago.style.display = "flex";
 
             } catch (error) { mostrarAlerta("Error al confirmar: " + error.message); }
@@ -597,27 +641,7 @@
             window.location.reload();
         }
 
-        let intervalo;
-        function iniciarCuentaRegresiva(minutos) {
-            clearInterval(intervalo);
-            let tiempo = minutos * 60; 
-            const visualizador = document.getElementById('cronometro');
-            
-            intervalo = setInterval(async () => {
-                let m = Math.floor(tiempo / 60);
-                let s = tiempo % 60;
-                visualizador.textContent = `${m}:${s < 10 ? '0'+s : s}`;
-                
-                if (tiempo <= 0) {
-                    clearInterval(intervalo);
-                    await borrarLoteCompleto();
-                    mostrarAlerta("⚠️ Tiempo agotado. Se liberaron los asientos.", 'reload');
-                } else {
-                    tiempo--; 
-                }
-            }, 1000);
-        }
-
+        // LIMPIEZA AUTOMÁTICA
         async function limpiarReservasVencidas(datos) {
             const ahora = new Date().getTime(); 
             for (const id in datos) {
@@ -628,7 +652,7 @@
             }
         }
 
-        window.cerrarModales = function() { modalForm.style.display = "none"; clearTimeout(timeoutFormulario); }
+        window.cerrarModales = function() { modalForm.style.display = "none"; }
         window.abrirConfirmacion = function() { modalConfirmacion.style.display = "flex"; }
         window.cerrarConfirmacion = function() { modalConfirmacion.style.display = "none"; }
 
@@ -637,6 +661,18 @@
             snap.forEach((doc) => datos[doc.id] = doc.data());
             dibujarAsientos(datos);
         });
+
+        // --- 🛡️ PROTOCOLO DE EMERGENCIA (CIERRE/REFRESH) ---
+        // Si el usuario tiene butacas en proceso y cierra la pestaña, las liberamos.
+        window.addEventListener('beforeunload', () => {
+            if (window.reservadosDB.length > 0) {
+                window.reservadosDB.forEach(id => {
+                    const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/asientos_gala/${id}?key=${API_KEY}`;
+                    fetch(url, { method: 'DELETE', keepalive: true });
+                });
+            }
+        });
+
     </script>
 </body>
 </html>
