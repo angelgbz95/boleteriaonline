@@ -9,8 +9,42 @@
         /* --- ESTILO GENERAL --- */
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121212; color: white; text-align: center; margin: 0; padding-bottom: 80px; }
         
-        h1 { color: #d4af37; text-transform: uppercase; letter-spacing: 3px; margin-top: 40px; text-shadow: 0 0 10px rgba(212, 175, 55, 0.5); font-size: 24px; }
+        h1 { color: #d4af37; text-transform: uppercase; letter-spacing: 3px; margin-top: 20px; text-shadow: 0 0 10px rgba(212, 175, 55, 0.5); font-size: 24px; }
         p { color: #888; }
+
+        /* --- BARRA DE USUARIO (NUEVO) --- */
+        #barra-usuario {
+            display: none; /* Se activa al loguear */
+            background-color: #222; padding: 10px 20px;
+            justify-content: space-between; align-items: center;
+            border-bottom: 1px solid #333; font-size: 14px;
+        }
+        .user-info { display: flex; align-items: center; gap: 10px; color: #ccc; }
+        .user-avatar { width: 30px; height: 30px; border-radius: 50%; border: 1px solid #d4af37; }
+        .btn-logout { background: none; border: 1px solid #555; color: #888; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .btn-logout:hover { border-color: #e74c3c; color: #e74c3c; }
+
+        /* --- PANTALLA LOGIN (NUEVO) --- */
+        #pantalla-login {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: #121212; z-index: 2000;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+        }
+        .login-card {
+            background: #1e1e1e; padding: 40px; border-radius: 15px;
+            border: 1px solid #333; text-align: center; max-width: 90%; width: 350px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .btn-google {
+            background-color: #fff; color: #333;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            width: 100%; padding: 12px; border-radius: 5px; border: none;
+            font-weight: bold; font-size: 16px; cursor: pointer; margin-top: 20px;
+            transition: transform 0.2s;
+        }
+        .btn-google:hover { transform: scale(1.02); background-color: #f1f1f1; }
+        .btn-google img { width: 20px; height: 20px; }
 
         /* --- ESCENARIO Y SALA --- */
         .escenario {
@@ -96,6 +130,10 @@
         .modal-contenido h2 { margin-top: 0; color: #d4af37; text-align: center; font-size: 22px; margin-bottom: 15px; }
         
         input { width: 100%; padding: 10px; margin: 5px 0; border-radius: 5px; border: 1px solid #555; background: #333; color: white; box-sizing: border-box; font-size: 16px; }
+        
+        /* Input deshabilitado (Email) */
+        input:disabled { background: #222; color: #777; border-color: #444; cursor: not-allowed; }
+
         label { font-size: 14px; color: #ccc; margin-top: 5px; display: block; }
         #inp-nombre { text-transform: uppercase; }
 
@@ -136,6 +174,25 @@
 
     <div id="loading-overlay">🔒 Verificando disponibilidad...</div>
 
+    <div id="pantalla-login">
+        <div class="login-card">
+            <h2 style="color:#d4af37; margin-bottom:10px;">🎟️ BOLETERÍA ONLINE</h2>
+            <p style="font-size:14px; color:#ccc;">Para garantizar tu seguridad y evitar reventas, por favor ingresa con tu cuenta.</p>
+            <button class="btn-google" onclick="loginGoogle()">
+                <img src="https://img.icons8.com/color/48/google-logo.png" alt="Google">
+                Ingresar con Google
+            </button>
+        </div>
+    </div>
+
+    <div id="barra-usuario">
+        <div class="user-info">
+            <img id="u-avatar" class="user-avatar" src="" alt="">
+            <span id="u-nombre">Cargando...</span>
+        </div>
+        <button class="btn-logout" onclick="logoutGoogle()">Salir</button>
+    </div>
+
     <h1>🩰 Gran Gala de Ballet</h1>
     <p>Selecciona tus butacas</p>
 
@@ -167,13 +224,16 @@
             <p style="color:#aaa; font-size:14px; margin-bottom:15px;">Tiempo restante: <span id="cronometro-form" class="reloj-maestro" data-limite="0" style="color:#f1c40f; font-weight:bold">05:00</span></p>
             
             <label>Nombre Completo:</label>
-            <input type="text" id="inp-nombre" placeholder="Ej: JUAN PÉREZ">
+            <input type="text" id="inp-nombre" placeholder="Nombre de Google">
+            
+            <label>Email (Verificado):</label>
+            <input type="email" id="inp-email" placeholder="Email de Google" disabled>
+            
             <label>DNI:</label>
             <input type="tel" id="inp-dni" placeholder="8 números" maxlength="8" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+            
             <label>Teléfono (WhatsApp):</label>
             <input type="tel" id="inp-tel" placeholder="Ej: 3764123456" maxlength="15" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
-            <label>Email:</label>
-            <input type="email" id="inp-email" placeholder="nombre@mail.com">
 
             <div class="contenedor-pago-tarjeta">
                 <p class="titulo-seccion">Forma de Pago:</p>
@@ -252,8 +312,11 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, getDoc, runTransaction, writeBatch } 
+        import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, getDoc, runTransaction, writeBatch, query, where, getDocs } 
         from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        // IMPORTAMOS AUTH y GOOGLE PROVIDER
+        import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } 
+        from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
         const API_KEY = "AIzaSyDFg-4F6_bVHP7xYAOlUVwFiTTUoZ-ltVc";
         const PROJECT_ID = "boleteria-piloto";
@@ -267,12 +330,8 @@
             appId: "1:888414257363:web:7653fbdf87284bd6645426"
         };
         
-        // ======================================================================
-        // 💰 CONFIGURACIÓN DE PRECIOS DIFERENCIADOS 💰
-        // ======================================================================
-        
-        const PRECIO_VIP = 10000;    // Filas de adelante (Ej: Fila 1)
-        const PRECIO_GRAL = 5000;    // Resto de filas
+        const PRECIO_VIP = 10000;
+        const PRECIO_GRAL = 5000;
 
         const LINKS_MP = {
            5000:  "https://mpago.la/2iQ4B57",
@@ -284,13 +343,18 @@
         };
         const LINK_DEFAULT = "https://wa.me/5493764374689"; 
 
-        // ======================================================================
-
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+        const auth = getAuth(app); // INICIALIZAR AUTH
+        const provider = new GoogleAuthProvider(); // PROVEEDOR GOOGLE
+
         const contenedor = document.getElementById('contenedor-asientos');
         const btnFlotante = document.getElementById('btn-flotante');
         const loadingOverlay = document.getElementById('loading-overlay');
+        const pantallaLogin = document.getElementById('pantalla-login');
+        const barraUsuario = document.getElementById('barra-usuario');
+        const uAvatar = document.getElementById('u-avatar');
+        const uNombre = document.getElementById('u-nombre');
         
         const modalForm = document.getElementById('modalFormulario');
         const modalPago = document.getElementById('modalPago');
@@ -306,21 +370,58 @@
         const txtTotalFinal = document.getElementById('txt-total-final');
         const msjInstrucciones = document.getElementById('mensaje-instrucciones');
         
-        // ELEMENTOS RELOJES MAESTROS
         const cronometroForm = document.getElementById('cronometro-form'); 
         const cronometroPago = document.getElementById('cronometro-pago'); 
         
         window.seleccionados = []; 
         window.reservadosDB = [];  
+        let userIP = "0.0.0.0";
+        let currentUser = null; // USUARIO LOGUEADO
 
-        // --- MAPA ---
-        const mapa = [
-            "AAA_AAA", // Fila 1 (VIP)
-            "AAA_AAA", // Fila 2 (Gral)
-            "AAA_AAA",
-            "AAA_AAA",
-            "AAA_AAA"
-        ];
+        // --- AUTH GOOGLE ---
+        window.loginGoogle = () => {
+            signInWithPopup(auth, provider).catch((error) => {
+                mostrarAlerta("Error al iniciar sesión: " + error.message);
+            });
+        }
+
+        window.logoutGoogle = () => {
+            signOut(auth).then(() => { window.location.reload(); });
+        }
+
+        // MONITOR DE SESIÓN
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                // LOGIN OK
+                currentUser = user;
+                pantallaLogin.style.display = "none";
+                barraUsuario.style.display = "flex";
+                uNombre.innerText = user.displayName.split(" ")[0]; // Primer nombre
+                uAvatar.src = user.photoURL;
+                // Iniciar sistema
+                escucharDB();
+            } else {
+                // NO LOGIN
+                pantallaLogin.style.display = "flex";
+                barraUsuario.style.display = "none";
+            }
+        });
+
+        // OBTENER IP
+        fetch('https://api.ipify.org?format=json')
+            .then(response => response.json())
+            .then(data => userIP = data.ip)
+            .catch(error => console.log('Error IP:', error));
+
+        const mapa = ["AAA_AAA", "AAA_AAA", "AAA_AAA", "AAA_AAA", "AAA_AAA"];
+
+        function escucharDB() {
+            onSnapshot(collection(db, "asientos_gala"), (snap) => {
+                const datos = {};
+                snap.forEach((doc) => datos[doc.id] = doc.data());
+                dibujarAsientos(datos);
+            });
+        }
 
         function dibujarAsientos(datos) {
             limpiarReservasVencidas(datos);
@@ -352,15 +453,14 @@
                         div.id = `asiento-${id}`;
 
                         if (datos[id]) {
-                            // GUARDAR LÍMITE PARA EL RELOJ MAESTRO SI ES TUYO
+                            // SI ES MI RESERVA, ACTUALIZAR RELOJ MAESTRO
                             if (window.reservadosDB.includes(id) && datos[id].limite) {
-                                // Decidimos qué reloj actualizar según el estado
                                 if (datos[id].estado === 'bloqueado') {
                                     cronometroForm.dataset.limite = datos[id].limite;
-                                    cronometroPago.dataset.limite = 0; // Limpiar el otro
+                                    cronometroPago.dataset.limite = 0; 
                                 } else if (datos[id].estado === 'pendiente') {
                                     cronometroPago.dataset.limite = datos[id].limite;
-                                    cronometroForm.dataset.limite = 0; // Limpiar el otro
+                                    cronometroForm.dataset.limite = 0; 
                                 }
                             }
 
@@ -386,22 +486,18 @@
             });
         }
 
-        // --- ⏰ RELOJ MAESTRO SINCRONIZADO (UNIFICADO) ---
-        // Se ejecuta cada 500ms y busca TODOS los elementos con clase 'reloj-maestro'
         setInterval(() => {
             const timers = document.querySelectorAll('.reloj-maestro'); 
             const ahora = new Date().getTime();
 
             timers.forEach(el => {
                 const limite = parseInt(el.dataset.limite || 0);
-                if (!limite) return; // Si no hay límite asignado, saltar
+                if (!limite) return; 
 
                 const res = limite - ahora;
 
                 if (res < 0) {
-                    // TIEMPO AGOTADO
                     el.innerText = "0:00";
-                    // Ejecutar limpieza si el modal correspondiente está visible
                     if (modalForm.style.display === 'flex' || modalPago.style.display === 'flex') {
                          borrarLoteCompleto().then(() => {
                             modalForm.style.display = 'none';
@@ -417,30 +513,32 @@
             });
         }, 500);
 
-        // --- 🕵️‍♂️ DETECTOR DE ÉXITO EN VIVO ---
         function checkearConfirmacionAdmin(datos) {
             if (window.reservadosDB.length > 0) {
                 const todasConfirmadas = window.reservadosDB.every(id => datos[id] && datos[id].estado === 'ocupado');
                 
                 if (todasConfirmadas) {
-                    // Limpiar relojes visuales
                     cronometroForm.dataset.limite = 0;
                     cronometroPago.dataset.limite = 0;
-                    
                     modalPago.style.display = 'none'; 
                     modalForm.style.display = 'none';
                     modalExito.style.display = 'flex'; 
-                    
                     window.reservadosDB = [];
                 }
             }
         }
+
+        const MAX_ASIENTOS = 6; 
 
         function toggleSeleccion(id) {
             const div = document.getElementById(`asiento-${id}`);
             const index = window.seleccionados.indexOf(id);
 
             if (index === -1) {
+                if (window.seleccionados.length >= MAX_ASIENTOS) {
+                    mostrarAlerta(`⚠️ LÍMITE ALCANZADO\n\nPor seguridad, solo puedes seleccionar hasta ${MAX_ASIENTOS} butacas por operación.`);
+                    return; 
+                }
                 window.seleccionados.push(id);
                 div.classList.add('seleccionado');
             } else {
@@ -464,7 +562,6 @@
         function actualizarBotonFlotante() {
             const total = window.seleccionados.length;
             const monto = calcularTotalSeleccion();
-            
             if (total > 0) {
                 btnFlotante.innerText = `CONTINUAR ($${monto.toLocaleString()})`;
                 btnFlotante.style.display = 'block';
@@ -493,6 +590,20 @@
             loadingOverlay.style.display = 'flex'; 
 
             try {
+                // DOBLE CHEQUEO: IP + USER ID
+                const q = query(collection(db, "asientos_gala"), where("uid", "==", currentUser.uid)); // Chequeo por usuario real
+                const querySnapshot = await getDocs(q);
+                let activasUsuario = 0;
+                
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    if(data.estado !== 'ocupado') activasUsuario++;
+                });
+
+                if ((activasUsuario + asientosParaBloquear.length) > MAX_ASIENTOS) {
+                    throw new Error("LÍMITE_IP");
+                }
+
                 await runTransaction(db, async (transaction) => {
                     const lecturas = [];
                     for (let id of asientosParaBloquear) {
@@ -510,7 +621,6 @@
                         }
                     }
 
-                    // 5 MINUTOS PARA LLENAR DATOS (FORMULARIO)
                     const tiempoFormulario = new Date().getTime() + (5 * 60 * 1000); 
                     for (let id of asientosParaBloquear) {
                         const docRef = doc(db, "asientos_gala", id);
@@ -518,7 +628,9 @@
                             estado: "bloqueado", 
                             cliente: "Completando Datos...", 
                             limite: tiempoFormulario,
-                            fecha: new Date().toISOString()
+                            fecha: new Date().toISOString(),
+                            ip: userIP,
+                            uid: currentUser.uid // GUARDAMOS EL ID DEL USUARIO
                         });
                     }
                 });
@@ -530,7 +642,9 @@
 
             } catch (error) {
                 if (error.message.includes("OCUPADA")) {
-                    mostrarAlerta("🔒 ¡Lo sentimos! \n\nAlguien fue más rápido y acaba de pre-reservar una de tus butacas.\n\nPor favor, recarga para ver las disponibles.", 'reload');
+                    mostrarAlerta("🔒 ¡Lo sentimos! \n\nAlguien fue más rápido y acaba de pre-reservar una de tus butacas.", 'reload');
+                } else if (error.message.includes("LÍMITE_IP")) {
+                    mostrarAlerta(`⛔ LÍMITE ALCANZADO\n\nYa tienes reservas en curso con esta cuenta de Google.\n\nCompleta las anteriores antes de seguir.`);
                 } else {
                     mostrarAlerta("⚠️ Error: " + error.message);
                 }
@@ -548,13 +662,14 @@
             
             txtTotalForm.innerText = `$${totalPesos.toLocaleString()}`;
             
-            document.getElementById('inp-nombre').value = "";
+            // AUTOCOMPLETADO DE GOOGLE
+            document.getElementById('inp-nombre').value = currentUser.displayName;
+            document.getElementById('inp-email').value = currentUser.email; // Email bloqueado
+            
             document.getElementById('inp-dni').value = "";
             document.getElementById('inp-tel').value = "";
-            document.getElementById('inp-email').value = "";
             
             modalForm.style.display = "flex";
-            // Nota: Ya no seteamos timeout aquí, lo maneja el Reloj Maestro
         }
 
         window.cancelarFormularioYLiberar = async function() {
@@ -571,7 +686,7 @@
             const modoPago = document.querySelector('input[name="pago"]:checked').value;
 
             if (nombre === "" || dni === "" || tel === "") return mostrarAlerta("⚠️ Completa los datos.");
-            if (dni.length !== 8) return mostrarAlerta("⚠️ DNI de 8 números. Si tu DNI es de 7 dígitos, anteponé un 0 (cero)");
+            if (dni.length !== 8) return mostrarAlerta("⚠️ DNI de 8 números.");
             if (tel.length < 8) return mostrarAlerta("⚠️ Teléfono incorrecto.");
 
             let minutos = (modoPago === 'mp') ? 15 : 1440;
@@ -579,7 +694,6 @@
 
             try {
                 const batch = writeBatch(db);
-                
                 window.reservadosDB.forEach(id => {
                     const docRef = doc(db, "asientos_gala", id);
                     batch.update(docRef, {
@@ -595,9 +709,7 @@
 
                 await batch.commit();
                 
-                // Limpiamos reloj de form, pasamos al de pago
                 cronometroForm.dataset.limite = 0; 
-
                 tButacasFinal.innerText = window.reservadosDB.join(", ");
                 
                 let totalFinal = 0;
@@ -607,7 +719,6 @@
                 });
                 
                 txtTotalFinal.innerText = `$${totalFinal.toLocaleString()}`;
-
                 modalForm.style.display = "none";
                 
                 if (modoPago === 'mp') {
@@ -620,7 +731,6 @@
                     msjInstrucciones.innerText = "Paga en efectivo dentro de las 24hs.";
                 }
 
-                // Seteamos el data-limite en el HTML para el Reloj Maestro del PAGO
                 cronometroPago.dataset.limite = tiempoLimite;
                 modalPago.style.display = "flex";
 
@@ -641,7 +751,6 @@
             window.location.reload();
         }
 
-        // LIMPIEZA AUTOMÁTICA
         async function limpiarReservasVencidas(datos) {
             const ahora = new Date().getTime(); 
             for (const id in datos) {
@@ -656,14 +765,6 @@
         window.abrirConfirmacion = function() { modalConfirmacion.style.display = "flex"; }
         window.cerrarConfirmacion = function() { modalConfirmacion.style.display = "none"; }
 
-        onSnapshot(collection(db, "asientos_gala"), (snap) => {
-            const datos = {};
-            snap.forEach((doc) => datos[doc.id] = doc.data());
-            dibujarAsientos(datos);
-        });
-
-        // --- 🛡️ PROTOCOLO DE EMERGENCIA (CIERRE/REFRESH) ---
-        // Si el usuario tiene butacas en proceso y cierra la pestaña, las liberamos.
         window.addEventListener('beforeunload', () => {
             if (window.reservadosDB.length > 0) {
                 window.reservadosDB.forEach(id => {
